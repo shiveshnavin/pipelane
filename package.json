@@ -1,8 +1,12 @@
 {
-  "name": "pipeway",
+  "name": "pipeworks",
   "version": "1.0.0",
   "description": "A library to perform set of tasks with plug and play elements",
-  "main": "index.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "/dist"
+  ],
   "scripts": {
     "test": "npm test"
   },
@@ -14,5 +18,11 @@
     "tasks"
   ],
   "author": "Shivesh Navin",
-  "license": "MIT"
+  "license": "GNU",
+  "devDependencies": {
+    "ts-node": "^10.9.1"
+  },
+  "dependencies": {
+    "typescript": "^4.9.4"
+  }
 }
