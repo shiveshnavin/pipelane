@@ -1,0 +1,18 @@
+{
+  "name": "pipeway",
+  "version": "1.0.0",
+  "description": "A library to perform set of tasks with plug and play elements",
+  "main": "index.js",
+  "scripts": {
+    "test": "npm test"
+  },
+  "keywords": [
+    "pipe",
+    "parallel",
+    "tasks",
+    "execute",
+    "tasks"
+  ],
+  "author": "Shivesh Navin",
+  "license": "MIT"
+}
