@@ -1,9 +1,14 @@
 {
     "compilerOptions": {
         "module": "commonjs",
-        "target": "es2015",
+        "target": "esNext",
         "declaration": true,
-        "outDir": "./dist"
+        "outDir": "./dist",
+        "types": [
+            "node",
+            "mocha",
+            "chai"
+        ]
     },
     "include": [
         "src/**/**/*"
