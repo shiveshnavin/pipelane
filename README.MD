@@ -3,7 +3,7 @@ A library to orchestrate a set of tasks where each task could have variants. Sup
 
 ## Installation
 ```
-npm install pipeworks
+npm install pipelane
 ```
 
 ## Basic Usage

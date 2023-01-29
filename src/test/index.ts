@@ -5,7 +5,7 @@ import SimplePipeTask from '../impl/SimplePipeTask';
 import { OnLog } from '../models/PipeTask';
 import PipeLane from '../models/PipeLane';
 
-describe('PipeWorks Test', () => {
+describe('PipeLane Test', () => {
     it('should check equality', () => {
 
         const pipeWork = new PipeLane({

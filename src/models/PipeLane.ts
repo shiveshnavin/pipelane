@@ -64,7 +64,7 @@ class PipeLane {
      */
     constructor(taskVariantConfig: TaskVariantConfig) {
         this.setTaskVariantsConfig(taskVariantConfig);
-        this.workspaceFolder = './pipeworks'
+        this.workspaceFolder = './pipelane'
     }
 
     public setWorkSpaceFolder(path: string): PipeLane {
@@ -89,7 +89,7 @@ class PipeLane {
             return
         }
         if (!checkpointFolderPath) {
-            checkpointFolderPath = './pipeworks/'
+            checkpointFolderPath = './pipelane/'
         }
         this.name = pipeName;
         this.checkpointFolderPath = checkpointFolderPath;
@@ -291,7 +291,7 @@ class PipeLane {
     /**
      * Adds a simple sequential task to pipe. There can be multiple variants of a task which is defined in taskConfig
      * @param taskConfig 
-     * @returns PipeWorks
+     * @returns PipeLane
      */
     public pipe(taskConfig: VariablePipeTask): PipeLane {
         let config = this.defaultVariablePipeTaskParams(taskConfig)
@@ -305,7 +305,7 @@ class PipeLane {
     /**
      * Adds a parallel task to pipe. Each parallel task gets complete output from the last task from the There can be multiple variants of a task which is defined in taskConfig
      * @param taskConfig 
-     * @returns PipeWorks
+     * @returns PipeLane
      */
     public parallelPipe(taskConfig: VariablePipeTask): PipeLane {
         let config = this.defaultVariablePipeTaskParams(taskConfig)
@@ -319,7 +319,7 @@ class PipeLane {
     /**
      * Adds a parallel task to pipe. Similar to `parallelPipe` with the key difference that the output from previous task are divided into `numberOfShards` groups and fed to the parallel tasks. There can be multiple variants of a task which is defined in taskConfig
      * @param taskConfig 
-     * @returns PipeWorks
+     * @returns PipeLane
      */
     public shardedPipe(taskConfig: VariablePipeTask): PipeLane {
         if (!taskConfig.numberOfShards) {
@@ -365,7 +365,7 @@ class PipeLane {
     /**
     * Adds a delay in execution of next task
     * @param sleepMs Delay in Miliseconds 
-    * @returns PipeWorks
+    * @returns PipeLane
     */
     public sleep(sleepMs: number): PipeLane {
         let config = this.defaultVariablePipeTaskParams({

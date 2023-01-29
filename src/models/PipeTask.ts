@@ -101,7 +101,7 @@ abstract class PipeTask<I extends InputWithPreviousInputs, O extends OutputWithS
 
     /**
      * Implement your task using this function. It will be called when task is executed
-     * @param pipeWorkInstance PipeWorks instance
+     * @param pipeWorkInstance PipeLane instance
      * @param inputs Inputs include outputs of previous task and any additional inputs
      */
     abstract execute(pipeWorkInstance: PipeLane, inputs: I): Promise<O[]>;

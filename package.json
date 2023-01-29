@@ -1,6 +1,6 @@
 {
   "name": "pipelane",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A library to perform set of tasks with plug and play elements",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -8,6 +8,7 @@
     "/dist"
   ],
   "scripts": {
+    "build": "tsc",
     "test": "mocha -r ts-node/register 'src/test/**/*.ts'",
     "docs": " jsdoc -c jsdoc.json -r"
   },
