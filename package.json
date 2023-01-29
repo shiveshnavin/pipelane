@@ -8,7 +8,8 @@
     "/dist"
   ],
   "scripts": {
-    "test": "mocha -r ts-node/register 'src/test/**/*.ts'"
+    "test": "mocha -r ts-node/register 'src/test/**/*.ts'",
+    "docs": " jsdoc -c jsdoc.json -r"
   },
   "keywords": [
     "pipe",
@@ -24,9 +25,14 @@
     "url": "https://github.com/shiveshnavin/pipeworks.git"
   },
   "devDependencies": {
+    "@types/jsdoc-to-markdown": "^7.0.3",
     "@types/mocha": "^10.0.1",
+    "better-docs": "^2.7.2",
     "chai": "^4.3.7",
+    "jsdoc": "^4.0.0",
+    "jsdoc-plugin-typescript": "^2.2.0",
     "mocha": "^10.2.0",
+    "taffydb": "^2.7.3",
     "ts-node": "^10.9.1"
   },
   "dependencies": {

@@ -1,0 +1,32 @@
+{
+    "source": {
+        "include": [
+            "src"
+        ],
+        "exclude": [
+            "node_modules"
+        ],
+        "includePattern": "\\.(jsx|js|ts|tsx)$"
+    },
+    "tags": {
+        "allowUnknownTags": [
+            "optional"
+        ]
+    },
+    "plugins": [
+        "plugins/markdown",
+        "node_modules/better-docs/typescript"
+    ],
+    "opts": {
+        "destination": "./docs",
+        "template": "node_modules/better-docs",
+        "configure": "./tsconfig.json"
+    },
+    "typescript": {
+        "moduleRoot": "./src",
+        "module": "commonjs",
+        "target": "esNext",
+        "experimentalDecorators": true,
+        "emitDecoratorMetadata": true
+    }
+}

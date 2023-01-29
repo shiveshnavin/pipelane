@@ -58,7 +58,7 @@ class PipeWorks {
 
     /**
      * 
-     * @param taskVariantConfig {"tastType1": MyTaskImplementationClass}
+     * @param {TaskVariantConfig} taskVariantConfig Specify the variant implementations for each task
      */
     constructor(taskVariantConfig: TaskVariantConfig) {
         this.setTaskVariantsConfig(taskVariantConfig);

@@ -54,13 +54,6 @@ abstract class PipeTask<I extends InputWithPreviousInputs, O extends OutputWithS
     }
 
 
-    public init(): any {
-        this.startTime = Date.now()
-    }
-
-    public done(): any {
-        this.endTime = Date.now()
-    }
 
     public async _execute(pipeWorkInstance: PipeWorks, inputs: I): Promise<O[]> {
         this.init();
@@ -78,6 +71,7 @@ abstract class PipeTask<I extends InputWithPreviousInputs, O extends OutputWithS
         return this.outputs;
     }
 
+
     public getTaskTypeName(): string {
         return this.taskTypeName;
     }
@@ -85,7 +79,30 @@ abstract class PipeTask<I extends InputWithPreviousInputs, O extends OutputWithS
         return this.taskVariantName;
     }
 
+    /**
+     * Called before executing task
+     */
+    protected init(): any {
+        this.startTime = Date.now()
+    }
+
+    /**
+     * Called after executing task
+     */
+    protected done(): any {
+        this.endTime = Date.now()
+    }
+
+    /**
+     * Called when task is killed preemptively. Implement your stop task mechanism here.
+     */
     abstract kill(): boolean;
+
+    /**
+     * Implement your task using this function. It will be called when task is executed
+     * @param pipeWorkInstance PipeWorks instance
+     * @param inputs Inputs include outputs of previous task and any additional inputs
+     */
     abstract execute(pipeWorkInstance: PipeWorks, inputs: I): Promise<O[]>;
 
 }
