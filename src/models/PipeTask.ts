@@ -1,5 +1,5 @@
 import moment = require("moment");
-import PipeWorks from "./PipeWorks";
+import type PipeWorks from "./PipeWorks";
 
 interface OutputWithStatus {
     status?: boolean
@@ -27,6 +27,7 @@ abstract class PipeTask<I extends InputWithPreviousInputs, O extends OutputWithS
 
     public static TASK_VARIANT_NAME: string;
     public static TASK_TYPE_NAME: string;
+    public static LOGGING_LEVEL: number = 5;
 
 
     private taskVariantName: string;
@@ -48,7 +49,7 @@ abstract class PipeTask<I extends InputWithPreviousInputs, O extends OutputWithS
 
     protected onLog = function (...args: any[]) {
         this.logs.push(OnLog(args))
-        if (PipeWorks.LOGGING_LEVEL >= 2) {
+        if (PipeTask.LOGGING_LEVEL >= 2) {
             console.log(OnLog(args))
         }
     }

@@ -3,6 +3,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import moment = require("moment");
 import * as lodash from 'lodash';
+import DelayPipeTask from "../impl/DelayPipeTask";
+import CheckpointPipeTask from "../impl/CheckpointPipeTask";
 
 
 function splitArray<T>(arr: T[], pieces: number): T[][] {
@@ -74,7 +76,10 @@ class PipeWorks {
         if (!taskVariantConfig) {
             throw Error('Must provide a taskVariantConfig')
         }
-        this.taskVariantConfig = taskVariantConfig;
+        this.taskVariantConfig = Object.assign({
+            [DelayPipeTask.TASK_TYPE_NAME]: [new DelayPipeTask(1000)],
+            [CheckpointPipeTask.TASK_TYPE_NAME]: [new CheckpointPipeTask()]
+        }, taskVariantConfig);
         return this;
     }
 
@@ -89,17 +94,24 @@ class PipeWorks {
         this.name = pipeName;
         this.checkpointFolderPath = checkpointFolderPath;
         this.isEnableCheckpoints = true;
+
+        if (!fs.existsSync(this.workspaceFolder)) {
+            fs.mkdirSync(this.workspaceFolder)
+        }
+        if (!fs.existsSync(this.checkpointFolderPath)) {
+            fs.mkdirSync(this.checkpointFolderPath)
+        }
         return this;
     }
 
-    private saveCheckpoint() {
-        let chFile = path.join(this.checkpointFolderPath, `./${this.name}.json`);
+    public async _saveCheckpoint() {
+        let chFile = path.join(this.checkpointFolderPath, `./checkpoint_${this.name}.json`);
         fs.writeFileSync(chFile, JSON.stringify(this, undefined, 2))
         this.onLog("Checkpoint saved to", chFile)
     }
 
-    public loadCheckpoint(pipeName: string) {
-        let chFile = path.join(this.checkpointFolderPath, `./${pipeName}.json`);
+    private _loadCheckpoint(pipeName: string) {
+        let chFile = path.join(this.checkpointFolderPath, `./checkpoint_${pipeName}.json`);
         if (!fs.existsSync(chFile)) {
             this.onLog("No checkpoint found in path.", chFile)
             return
@@ -111,7 +123,7 @@ class PipeWorks {
         let obj: PipeWorks = this.deserialize(JSON.parse(checkPointBlob));
         this.executedTasks = obj.executedTasks;
         this.inputs = obj.inputs;
-        this.tasks = obj.tasks;
+
         this.isRunning = false;
         this.name = pipeName;
         this.currentTaskIdx = obj.currentTaskIdx;
@@ -138,7 +150,7 @@ class PipeWorks {
                     Object.keys(this.taskVariantConfig).forEach((key: string) => {
                         let tasks = this.taskVariantConfig[key];
                         tasks.forEach((taskVariant: PipeTask<InputWithPreviousInputs, OutputWithStatus>) => {
-                            if (taskVariant.getTaskTypeName() == type && task.getTaskVariantName() == variantType) {
+                            if (taskVariant.getTaskTypeName() == type && taskVariant.getTaskVariantName() == variantType) {
                                 matchingVariant = taskVariant;
                             }
                         })
@@ -170,8 +182,10 @@ class PipeWorks {
     }
 
     private execute(): Promise<any> {
+        this.isRunning = true;
         if (this.currentTaskIdx >= this.tasks.length) {
             this.onLog("All tasks completed")
+            this.isRunning = false;
             return
         }
         let lastTaskOutputs: OutputWithStatus[] = this.lastTaskOutput;
@@ -236,20 +250,32 @@ class PipeWorks {
 
         return Promise.all(this.currentExecutionPromises)
             .then(results => {
-                this.execute();
+                if (this.isRunning)
+                    this.execute();
             })
             .catch(e => {
+                console.log(e)
                 this.onLog("Error executing tasks", e.message)
-                this.execute();
+                if (this.isRunning)
+                    this.execute();
             })
 
     }
 
-    public pause() {
 
+    /**
+     * Pause current execution 
+     */
+    public async stop() {
+        this.isRunning = false;
+        if (this.enableCheckpoints)
+            this._saveCheckpoint()
+        this.currentExecutionTasks.forEach(ts => {
+            ts.task.kill()
+        })
+
+        await Promise.all(this.currentExecutionPromises)
     }
-
-
 
 
     /**
@@ -297,6 +323,36 @@ class PipeWorks {
     }
 
 
+    /**
+     * Creates a checkpoint with the current pipeline state
+     * @returns {PipeWorks}
+     */
+    public checkpoint(): PipeWorks {
+        let config = this.defaultVariablePipeTaskParams({
+            type: CheckpointPipeTask.TASK_TYPE_NAME,
+            variantType: 'default',
+            uniqueStepName: 'Checkpoint'
+        })
+        config.getTaskVariant(config.type);
+        this.tasks.push(config);
+        return this;
+    }
+
+    /**
+    * Adds a delay in execution of next task
+    * @param sleepMs Delay in Miliseconds 
+    * @returns PipeWorks
+    */
+    public sleep(sleepMs: number): PipeWorks {
+        let config = this.defaultVariablePipeTaskParams({
+            type: DelayPipeTask.TASK_TYPE_NAME
+        })
+
+        config.getTaskVariant(config.type);
+        this.tasks.push(config);
+        return this;
+    }
+
 
     /**
      * 
@@ -307,7 +363,7 @@ class PipeWorks {
         this.inputs = inputs;
         this.currentExecutionPromises = [];
         if (this.isEnableCheckpoints) {
-            this.loadCheckpoint(this.name);
+            this._loadCheckpoint(this.name);
         }
         this.isRunning = true;
         this.onLog("Started executing pipework", this.name || '')

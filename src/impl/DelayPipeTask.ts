@@ -1,5 +1,5 @@
 import PipeTask, { InputWithPreviousInputs, OutputWithStatus } from "../models/PipeTask";
-import PipeWorks from "../models/PipeWorks";
+import type PipeWorks from "../models/PipeWorks";
 
 
 class DelayPipeTask extends PipeTask<InputWithPreviousInputs, OutputWithStatus>{
