@@ -34,7 +34,7 @@ interface TaskVariantConfig {
     [key: string]: PipeTask<InputWithPreviousInputs, OutputWithStatus>[]
 }
 
-class PipeWorks {
+class PipeLane {
 
     public static LOGGING_LEVEL = 5;
 
@@ -67,12 +67,12 @@ class PipeWorks {
         this.workspaceFolder = './pipeworks'
     }
 
-    public setWorkSpaceFolder(path: string): PipeWorks {
+    public setWorkSpaceFolder(path: string): PipeLane {
         this.workspaceFolder = path;
         return this;
     }
 
-    public setTaskVariantsConfig(taskVariantConfig: TaskVariantConfig): PipeWorks {
+    public setTaskVariantsConfig(taskVariantConfig: TaskVariantConfig): PipeLane {
         if (!taskVariantConfig) {
             throw Error('Must provide a taskVariantConfig')
         }
@@ -83,7 +83,7 @@ class PipeWorks {
         return this;
     }
 
-    public enableCheckpoints(pipeName: string, checkpointFolderPath?: string): PipeWorks {
+    public enableCheckpoints(pipeName: string, checkpointFolderPath?: string): PipeLane {
         if (!pipeName) {
             this.onLog("Undefined checkpoint name. Checkpoints not enabled!")
             return
@@ -127,7 +127,7 @@ class PipeWorks {
             this.onLog("Loading checkpoint from", chFile)
         }
         let checkPointBlob = fs.readFileSync(chFile).toString();
-        let obj: PipeWorks = this.deserialize(JSON.parse(checkPointBlob));
+        let obj: PipeLane = this.deserialize(JSON.parse(checkPointBlob));
         this.executedTasks = obj.executedTasks;
         this.inputs = obj.inputs;
 
@@ -179,13 +179,13 @@ class PipeWorks {
     }
 
     private onLog = function (...args: any[]) {
-        if (PipeWorks.LOGGING_LEVEL >= 2) {
+        if (PipeLane.LOGGING_LEVEL >= 2) {
             console.log(OnLog(args))
         }
     }
 
-    private deserialize(d: Object): PipeWorks {
-        return Object.assign(new PipeWorks(this.taskVariantConfig), d);
+    private deserialize(d: Object): PipeLane {
+        return Object.assign(new PipeLane(this.taskVariantConfig), d);
     }
 
     private execute(): Promise<any> {
@@ -218,7 +218,7 @@ class PipeWorks {
             });
         }
 
-        if (PipeWorks.LOGGING_LEVEL > 3) {
+        if (PipeLane.LOGGING_LEVEL > 3) {
             this.onLog('Executing step', curTaskConfig.uniqueStepName || curTaskConfig.variantType || curTaskConfig.type)
         }
 
@@ -232,7 +232,7 @@ class PipeWorks {
                     task: curTaskConfig.getTaskVariant(curTaskConfig.type, curTaskConfig.variantType),
                     inputs: lastTaskOutputs
                 });
-                if (PipeWorks.LOGGING_LEVEL > 3) {
+                if (PipeLane.LOGGING_LEVEL > 3) {
                     this.onLog('Executing step', curTaskConfig.uniqueStepName)
                 }
                 this.currentTaskIdx++;
@@ -293,7 +293,7 @@ class PipeWorks {
      * @param taskConfig 
      * @returns PipeWorks
      */
-    public pipe(taskConfig: VariablePipeTask): PipeWorks {
+    public pipe(taskConfig: VariablePipeTask): PipeLane {
         let config = this.defaultVariablePipeTaskParams(taskConfig)
 
         config.getTaskVariant(config.type);
@@ -307,7 +307,7 @@ class PipeWorks {
      * @param taskConfig 
      * @returns PipeWorks
      */
-    public parallelPipe(taskConfig: VariablePipeTask): PipeWorks {
+    public parallelPipe(taskConfig: VariablePipeTask): PipeLane {
         let config = this.defaultVariablePipeTaskParams(taskConfig)
 
         config.getTaskVariant(config.type);
@@ -321,7 +321,7 @@ class PipeWorks {
      * @param taskConfig 
      * @returns PipeWorks
      */
-    public shardedPipe(taskConfig: VariablePipeTask): PipeWorks {
+    public shardedPipe(taskConfig: VariablePipeTask): PipeLane {
         if (!taskConfig.numberOfShards) {
             throw new Error("Must specify numberOfShards")
         }
@@ -335,9 +335,9 @@ class PipeWorks {
 
     /**
      * Creates a checkpoint with the current pipeline state
-     * @returns {PipeWorks}
+     * @returns {PipeLane}
      */
-    public checkpoint(): PipeWorks {
+    public checkpoint(): PipeLane {
         let config = this.defaultVariablePipeTaskParams({
             type: CheckpointPipeTask.TASK_TYPE_NAME,
             variantType: 'create'
@@ -350,9 +350,9 @@ class PipeWorks {
 
     /**
      * Removes a checkpoint with the current pipeline state
-     * @returns {PipeWorks}
+     * @returns {PipeLane}
      */
-    public clearCheckpoint(): PipeWorks {
+    public clearCheckpoint(): PipeLane {
         let config = this.defaultVariablePipeTaskParams({
             type: CheckpointPipeTask.TASK_TYPE_NAME,
             variantType: 'clear'
@@ -367,7 +367,7 @@ class PipeWorks {
     * @param sleepMs Delay in Miliseconds 
     * @returns PipeWorks
     */
-    public sleep(sleepMs: number): PipeWorks {
+    public sleep(sleepMs: number): PipeLane {
         let config = this.defaultVariablePipeTaskParams({
             type: DelayPipeTask.TASK_TYPE_NAME
         })
@@ -407,5 +407,5 @@ class PipeWorks {
 
 }
 
-export default PipeWorks;
+export default PipeLane;
 export { VariablePipeTask, TaskVariantConfig };

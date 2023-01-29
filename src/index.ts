@@ -1,9 +1,9 @@
 import PipeTask, { InputWithPreviousInputs, OutputWithStatus } from "./models/PipeTask";
-import PipeWorks, { TaskVariantConfig, VariablePipeTask } from "./models/PipeWorks";
+import PipeLane, { TaskVariantConfig, VariablePipeTask } from "./models/PipeLane";
 
 
 export { PipeTask, TaskVariantConfig, VariablePipeTask, InputWithPreviousInputs, OutputWithStatus }
-export default PipeWorks
+export default PipeLane
 
 /**
  * FSFDSSF

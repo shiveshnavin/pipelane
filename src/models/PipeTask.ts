@@ -1,5 +1,5 @@
 import moment = require("moment");
-import type PipeWorks from "./PipeWorks";
+import type PipeLane from "./PipeLane";
 
 interface OutputWithStatus {
     status?: boolean
@@ -56,7 +56,7 @@ abstract class PipeTask<I extends InputWithPreviousInputs, O extends OutputWithS
 
 
 
-    public async _execute(pipeWorkInstance: PipeWorks, inputs: I): Promise<O[]> {
+    public async _execute(pipeWorkInstance: PipeLane, inputs: I): Promise<O[]> {
         this.init();
         try {
             let result = await this.execute(pipeWorkInstance, inputs);
@@ -104,7 +104,7 @@ abstract class PipeTask<I extends InputWithPreviousInputs, O extends OutputWithS
      * @param pipeWorkInstance PipeWorks instance
      * @param inputs Inputs include outputs of previous task and any additional inputs
      */
-    abstract execute(pipeWorkInstance: PipeWorks, inputs: I): Promise<O[]>;
+    abstract execute(pipeWorkInstance: PipeLane, inputs: I): Promise<O[]>;
 
 }
 

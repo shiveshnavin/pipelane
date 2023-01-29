@@ -3,12 +3,12 @@ import { expect } from 'chai';
 import { describe, it } from 'mocha';
 import SimplePipeTask from '../impl/SimplePipeTask';
 import { OnLog } from '../models/PipeTask';
-import PipeWorks from '../models/PipeWorks';
+import PipeLane from '../models/PipeLane';
 
 describe('PipeWorks Test', () => {
     it('should check equality', () => {
 
-        const pipeWork = new PipeWorks({
+        const pipeWork = new PipeLane({
             [SimplePipeTask.TASK_TYPE_NAME]: [new SimplePipeTask('simplevar1'), new SimplePipeTask('simplevar2'), new SimplePipeTask('simplevar3')]
         }).enableCheckpoints('test')
             .pipe({

@@ -1,6 +1,6 @@
 import PipeTask from "../models/PipeTask";
 import type { InputWithPreviousInputs, OutputWithStatus } from "../models/PipeTask";
-import type PipeWorks from "../models/PipeWorks";
+import type PipeLane from "../models/PipeLane";
 
 
 class CheckpointPipeTask extends PipeTask<InputWithPreviousInputs, OutputWithStatus>{
@@ -14,7 +14,7 @@ class CheckpointPipeTask extends PipeTask<InputWithPreviousInputs, OutputWithSta
         this.action = action || 'create';
     }
 
-    async execute(pipeWorkInstance: PipeWorks, inputs: { last: any[]; }) {
+    async execute(pipeWorkInstance: PipeLane, inputs: { last: any[]; }) {
         if (this.action == 'clear')
             await pipeWorkInstance._removeCheckpoint()
         else

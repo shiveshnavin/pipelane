@@ -1,4 +1,4 @@
-# PipeWorks
+# PipeLane
 A library to orchestrate a set of tasks where each task could have variants. Support for resume using checkpoints.
 
 ## Installation
@@ -14,7 +14,7 @@ const variantConfig = {
             [SimplePipeTask.TASK_TYPE_NAME]: [new SimplePipeTask('simplevar1'), new SimplePipeTask('simplevar2'), new SimplePipeTask('simplevar3')]
 };
 
-const pipeWork = new PipeWorks(variantConfig).enableCheckpoints('test')
+const pipeLane = new PipeLane(variantConfig).enableCheckpoints('test')
             .pipe({
                 type: SimplePipeTask.TASK_TYPE_NAME,
                 uniqueStepName: 'Step1'

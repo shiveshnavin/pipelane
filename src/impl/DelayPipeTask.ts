@@ -1,5 +1,5 @@
 import PipeTask, { InputWithPreviousInputs, OutputWithStatus } from "../models/PipeTask";
-import type PipeWorks from "../models/PipeWorks";
+import type PipeLane from "../models/PipeLane";
 
 
 class DelayPipeTask extends PipeTask<InputWithPreviousInputs, OutputWithStatus>{
@@ -13,7 +13,7 @@ class DelayPipeTask extends PipeTask<InputWithPreviousInputs, OutputWithStatus>{
         this.sleepForMs = sleepForMs;
     }
 
-    async execute(pipeWorkInstance: PipeWorks, inputs: { last: any[]; }) {
+    async execute(pipeWorkInstance: PipeLane, inputs: { last: any[]; }) {
         let count = inputs?.last ? inputs?.last[0]?.count || 0 : 0
         this.onLog("Sleeping for", this.sleepForMs / 1000, 'seconds')
         await new Promise(resolve => setTimeout(resolve, this.sleepForMs));
