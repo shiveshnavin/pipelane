@@ -1,5 +1,5 @@
 {
-  "name": "pipeworks",
+  "name": "pipelane",
   "version": "1.0.0",
   "description": "A library to perform set of tasks with plug and play elements",
   "main": "dist/index.js",
@@ -22,7 +22,7 @@
   "license": "GNU",
   "repository": {
     "type": "git",
-    "url": "https://github.com/shiveshnavin/pipeworks.git"
+    "url": "https://github.com/shiveshnavin/pipelane.git"
   },
   "devDependencies": {
     "@types/jsdoc-to-markdown": "^7.0.3",
