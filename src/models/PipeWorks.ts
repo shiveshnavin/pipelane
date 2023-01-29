@@ -131,7 +131,7 @@ class PipeWorks {
             isParallel: task.isParallel || false,
             getTaskVariant: (type: string, variantType: string) => {
                 if (!this.taskVariantConfig.hasOwnProperty(type)) {
-                    throw Error('Fatal: No task with name' + type + 'exists in taskVariantConfig')
+                    throw Error('Fatal: No task with name ' + type + 'exists in taskVariantConfig')
                 }
                 if (variantType) {
                     let matchingVariant: PipeTask<InputWithPreviousInputs, OutputWithStatus> = undefined;

@@ -1,6 +1,7 @@
 // import the Chai library
 import { expect } from 'chai';
 import { describe, it } from 'mocha';
+import DelayPipeTask from '../impl/DelayPipeTask';
 import SimplePipeTask from '../impl/SimplePipeTask';
 import { OnLog } from '../models/PipeTask';
 import PipeWorks from '../models/PipeWorks';
@@ -8,13 +9,10 @@ import PipeWorks from '../models/PipeWorks';
 describe('PipeWorks Test', () => {
     it('should check equality', () => {
 
-
-        let simpleTask: SimplePipeTask = new SimplePipeTask('simplevar1');
-
         const pipeWork = new PipeWorks({
-            [SimplePipeTask.TASK_TYPE_NAME]: [simpleTask]
-        })
-        pipeWork.pipe({
+            [SimplePipeTask.TASK_TYPE_NAME]: [new SimplePipeTask('simplevar1')],
+            [DelayPipeTask.TASK_TYPE_NAME]: [new DelayPipeTask(3000)]
+        }).pipe({
             type: SimplePipeTask.TASK_TYPE_NAME,
             uniqueStepName: 'Step1'
         }).pipe({
@@ -34,8 +32,11 @@ describe('PipeWorks Test', () => {
             uniqueStepName: 'Step6',
             numberOfShards: 2
         }).pipe({
-            type: SimplePipeTask.TASK_TYPE_NAME,
+            type: DelayPipeTask.TASK_TYPE_NAME,
             uniqueStepName: 'Step7'
+        }).pipe({
+            type: SimplePipeTask.TASK_TYPE_NAME,
+            uniqueStepName: 'Step8'
         }).start();
     });
 });

@@ -65,7 +65,7 @@ abstract class PipeTask<I extends InputWithPreviousInputs, O extends OutputWithS
     public async _execute(pipeWorkInstance: PipeWorks, inputs: I): Promise<O[]> {
         this.init();
         try {
-            let result = await this.execute(pipeWorkInstance, inputs, this.onLog);
+            let result = await this.execute(pipeWorkInstance, inputs);
             this.outputs = result;
             this.status = result && result.length > 0;
         } catch (e) {
@@ -86,7 +86,7 @@ abstract class PipeTask<I extends InputWithPreviousInputs, O extends OutputWithS
     }
 
     abstract kill(): boolean;
-    abstract execute(pipeWorkInstance: PipeWorks, inputs: I, onLog: Function): Promise<O[]>;
+    abstract execute(pipeWorkInstance: PipeWorks, inputs: I): Promise<O[]>;
 
 }
 
