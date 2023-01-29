@@ -1,7 +1,20 @@
 import PipeTask, { InputWithPreviousInputs, OnLog, OutputWithStatus } from "./PipeTask";
 import * as fs from 'fs';
 import * as path from 'path';
+import moment = require("moment");
+import * as lodash from 'lodash';
 
+
+function splitArray<T>(arr: T[], pieces: number): T[][] {
+    let result: T[][] = [];
+    let chunkSize = Math.ceil(arr.length / pieces);
+
+    for (let i = 0, j = arr.length; i < j; i += chunkSize) {
+        result.push(arr.slice(i, i + chunkSize));
+    }
+
+    return result;
+}
 
 interface VariablePipeTask {
     type: string;
@@ -14,46 +27,58 @@ interface VariablePipeTask {
     numberOfShards?: number;
 }
 
+
+interface TaskVariantConfig {
+    [key: string]: PipeTask<InputWithPreviousInputs, OutputWithStatus>[]
+}
+
 class PipeWorks {
+
+    public static LOGGING_LEVEL = 5;
 
     private name: string;
     private workspaceFolder: string;
-    private executedTasks: PipeTask<InputWithPreviousInputs, OutputWithStatus>[];
-    private currentTaskIdx: number;
-    private tasks: VariablePipeTask[];
+    private executedTasks: PipeTask<InputWithPreviousInputs, OutputWithStatus>[] = [];
+    private currentTaskIdx: number = 0;
+    private tasks: VariablePipeTask[] = [];
     private inputs: any;
     private outputs: any;
     private isRunning: boolean;
     private isEnableCheckpoints: boolean;
     private checkpointFolderPath: string;
 
-    private currentExecutionPromises: Promise<any>[];
-    private currentExecutionTasks: PipeTask<InputWithPreviousInputs, OutputWithStatus>[];
+    private currentExecutionPromises: Promise<any>[] = [];
+    private currentExecutionTasks: {
+        task: PipeTask<InputWithPreviousInputs, OutputWithStatus>,
+        inputs: OutputWithStatus[]
+    }[] = [];
     private lastTaskOutput: OutputWithStatus[];
 
-    private taskVariantConfig: Map<string, PipeTask<InputWithPreviousInputs, OutputWithStatus>[]>;
+    private taskVariantConfig: TaskVariantConfig;
 
     /**
      * 
      * @param taskVariantConfig {"tastType1": MyTaskImplementationClass}
      */
-    constructor(taskVariantConfig: Map<string, PipeTask<InputWithPreviousInputs, OutputWithStatus>[]>) {
+    constructor(taskVariantConfig: TaskVariantConfig) {
         this.setTaskVariantsConfig(taskVariantConfig);
         this.workspaceFolder = './pipeworks'
     }
 
-    public setWorkSpaceFolder(path: string) {
+    public setWorkSpaceFolder(path: string): PipeWorks {
         this.workspaceFolder = path;
+        return this;
     }
 
-    public setTaskVariantsConfig(taskVariantConfig: Map<string, PipeTask<InputWithPreviousInputs, OutputWithStatus>[]>) {
+    public setTaskVariantsConfig(taskVariantConfig: TaskVariantConfig): PipeWorks {
         if (!taskVariantConfig) {
             throw Error('Must provide a taskVariantConfig')
         }
         this.taskVariantConfig = taskVariantConfig;
+        return this;
     }
 
-    public enableCheckpoints(pipeName: string, checkpointFolderPath?: string) {
+    public enableCheckpoints(pipeName: string, checkpointFolderPath?: string): PipeWorks {
         if (!pipeName) {
             this.onLog("Undefined checkpoint name. Checkpoints not enabled!")
             return
@@ -64,9 +89,10 @@ class PipeWorks {
         this.name = pipeName;
         this.checkpointFolderPath = checkpointFolderPath;
         this.isEnableCheckpoints = true;
+        return this;
     }
 
-    public saveCheckpoint() {
+    private saveCheckpoint() {
         let chFile = path.join(this.checkpointFolderPath, `./${this.name}.json`);
         fs.writeFileSync(chFile, JSON.stringify(this, undefined, 2))
         this.onLog("Checkpoint saved to", chFile)
@@ -94,80 +120,121 @@ class PipeWorks {
 
 
     private defaultVariablePipeTaskParams(task: VariablePipeTask): VariablePipeTask {
+        if (task.uniqueStepName && this.tasks.map(ts => ts.uniqueStepName).indexOf(task.uniqueStepName) > -1) {
+            throw new Error("A step with same uniqueStepName '" + task.uniqueStepName + "' already exists")
+        }
         return {
             type: task.type || 'task',
-            uniqueStepName: task.uniqueStepName || task.type,
+            uniqueStepName: task.uniqueStepName || task.variantType || task.type,
             variantType: task.variantType,
             numberOfShards: task.numberOfShards || 0,
             isParallel: task.isParallel || false,
             getTaskVariant: (type: string, variantType: string) => {
-                if (!this.taskVariantConfig.has(type)) {
+                if (!this.taskVariantConfig.hasOwnProperty(type)) {
                     throw Error('Fatal: No task with name' + type + 'exists in taskVariantConfig')
                 }
                 if (variantType) {
                     let matchingVariant: PipeTask<InputWithPreviousInputs, OutputWithStatus> = undefined;
-                    this.taskVariantConfig.forEach((tasks: PipeTask<any, any>[], taskType: string) => {
-
+                    Object.keys(this.taskVariantConfig).forEach((key: string) => {
+                        let tasks = this.taskVariantConfig[key];
                         tasks.forEach((taskVariant: PipeTask<InputWithPreviousInputs, OutputWithStatus>) => {
-                            if (taskVariant.taskTypeName == type && task.taskVariantName == variantType) {
+                            if (taskVariant.getTaskTypeName() == type && task.getTaskVariantName() == variantType) {
                                 matchingVariant = taskVariant;
                             }
                         })
 
                     });
                     if (matchingVariant) {
-                        return matchingVariant
+                        let clone = lodash.cloneDeep(matchingVariant);
+                        return clone
                     }
                 }
-                let task: PipeTask<InputWithPreviousInputs, OutputWithStatus> = this.taskVariantConfig.get(type)[0];
-                return task;
+                let task: PipeTask<InputWithPreviousInputs, OutputWithStatus> = this.taskVariantConfig[type][0];
+                if (!task) {
+                    throw Error("No task defined in taskVariantConfig of type " + type)
+                }
+                let clone = lodash.cloneDeep(task);
+                return clone
             }
         }
     }
-    private onLog(...args: any[]) {
-        console.log(OnLog(args));
+
+    private onLog = function (...args: any[]) {
+        if (PipeWorks.LOGGING_LEVEL >= 2) {
+            console.log(OnLog(args))
+        }
     }
+
     private deserialize(d: Object): PipeWorks {
         return Object.assign(new PipeWorks(this.taskVariantConfig), d);
     }
 
-    private execute() {
-        if (this.currentTaskIdx >= this.tasks.length - 1) {
+    private execute(): Promise<any> {
+        if (this.currentTaskIdx >= this.tasks.length) {
             this.onLog("All tasks completed")
             return
         }
-        let tasksToExecute: PipeTask<InputWithPreviousInputs, OutputWithStatus>[] = []
+        let lastTaskOutputs: OutputWithStatus[] = this.lastTaskOutput;
+        let tasksToExecute: {
+            task: PipeTask<InputWithPreviousInputs, OutputWithStatus>,
+            inputs: OutputWithStatus[]
+        }[] = []
         let curTaskConfig = this.tasks[this.currentTaskIdx++]
-        tasksToExecute.push(curTaskConfig.getTaskVariant(curTaskConfig.type, curTaskConfig.variantType));
+
+        if (lastTaskOutputs && curTaskConfig.numberOfShards > 0 && curTaskConfig.numberOfShards <= lastTaskOutputs.length) {
+            let inputShards = splitArray(lastTaskOutputs, curTaskConfig.numberOfShards)
+            inputShards.forEach(shardInput => {
+                tasksToExecute.push({
+                    task: curTaskConfig.getTaskVariant(curTaskConfig.type, curTaskConfig.variantType),
+                    inputs: shardInput
+                });
+            })
+        }
+        else {
+            tasksToExecute.push({
+                task: curTaskConfig.getTaskVariant(curTaskConfig.type, curTaskConfig.variantType),
+                inputs: lastTaskOutputs
+            });
+        }
+
+        if (PipeWorks.LOGGING_LEVEL > 3) {
+            this.onLog('Executing step', curTaskConfig.uniqueStepName)
+        }
+
         while (curTaskConfig.isParallel) {
             if (this.currentTaskIdx >= this.tasks.length) {
                 break
             }
             curTaskConfig = this.tasks[this.currentTaskIdx]
             if (curTaskConfig.isParallel) {
-                tasksToExecute.push(curTaskConfig.getTaskVariant(curTaskConfig.type, curTaskConfig.variantType));
+                tasksToExecute.push({
+                    task: curTaskConfig.getTaskVariant(curTaskConfig.type, curTaskConfig.variantType),
+                    inputs: lastTaskOutputs
+                });
+                if (PipeWorks.LOGGING_LEVEL > 3) {
+                    this.onLog('Executing step', curTaskConfig.uniqueStepName)
+                }
                 this.currentTaskIdx++;
             }
         }
 
-        let lastTaskOutput: OutputWithStatus[] = this.lastTaskOutput;
         let pw = this;
         this.lastTaskOutput = []
         this.currentExecutionTasks.push(...tasksToExecute);
-        this.currentExecutionPromises.push(...tasksToExecute.map((task) => {
-            return task._execute(pw, {
-                last: lastTaskOutput
-            }).then((result: OutputWithStatus) => {
-                this.lastTaskOutput.push(result)
+        this.currentExecutionPromises.push(...tasksToExecute.map((taskExecution) => {
+            return taskExecution.task._execute(pw, {
+                last: taskExecution.inputs
+            }).then((result: OutputWithStatus[]) => {
+                this.lastTaskOutput.push(...result)
             }).catch(e => {
-                this.onLog("Error in ", task.taskTypeName, e.message)
+                this.onLog("Error in ", taskExecution.task.getTaskTypeName(), e.message)
                 this.lastTaskOutput.push({
                     status: false
                 })
             })
         }))
 
-        Promise.all(this.currentExecutionPromises)
+        return Promise.all(this.currentExecutionPromises)
             .then(results => {
                 this.execute();
             })
@@ -184,12 +251,11 @@ class PipeWorks {
 
 
 
-    /***** ADDING TASKS *****/
 
     /**
-     * Adds a simple task to pipe. There can be multiple variants of a task which is defined in taskConfig
+     * Adds a simple sequential task to pipe. There can be multiple variants of a task which is defined in taskConfig
      * @param taskConfig 
-     * @returns 
+     * @returns PipeWorks
      */
     public pipe(taskConfig: VariablePipeTask): PipeWorks {
         let config = this.defaultVariablePipeTaskParams(taskConfig)
@@ -200,8 +266,44 @@ class PipeWorks {
     }
 
 
+    /**
+     * Adds a parallel task to pipe. Each parallel task gets complete output from the last task from the There can be multiple variants of a task which is defined in taskConfig
+     * @param taskConfig 
+     * @returns PipeWorks
+     */
+    public parallelPipe(taskConfig: VariablePipeTask): PipeWorks {
+        let config = this.defaultVariablePipeTaskParams(taskConfig)
 
-    public start(inputs: any) {
+        config.getTaskVariant(config.type);
+        config.isParallel = true;
+        this.tasks.push(config);
+        return this;
+    }
+
+    /**
+     * Adds a parallel task to pipe. Similar to `parallelPipe` with the key difference that the output from previous task are divided into `numberOfShards` groups and fed to the parallel tasks. There can be multiple variants of a task which is defined in taskConfig
+     * @param taskConfig 
+     * @returns PipeWorks
+     */
+    public shardedPipe(taskConfig: VariablePipeTask): PipeWorks {
+        if (!taskConfig.numberOfShards) {
+            throw new Error("Must specify numberOfShards")
+        }
+        let config = this.defaultVariablePipeTaskParams(taskConfig)
+
+        config.getTaskVariant(config.type);
+        this.tasks.push(config);
+        return this;
+    }
+
+
+
+    /**
+     * 
+     * @param inputs Inputs for the PipeWork
+     * @returns A promise which will resolve when all the tasks are completed
+     */
+    public start(inputs?: any): Promise<any> {
         this.inputs = inputs;
         this.currentExecutionPromises = [];
         if (this.isEnableCheckpoints) {
@@ -209,6 +311,8 @@ class PipeWorks {
         }
         this.isRunning = true;
         this.onLog("Started executing pipework", this.name || '')
+
+        return this.execute();
     }
 
 
@@ -224,4 +328,4 @@ class PipeWorks {
 }
 
 export default PipeWorks;
-export { VariablePipeTask };
+export { VariablePipeTask, TaskVariantConfig };
