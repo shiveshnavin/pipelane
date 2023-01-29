@@ -40,7 +40,9 @@ describe('PipeWorks Test', () => {
             }).pipe({
                 type: SimplePipeTask.TASK_TYPE_NAME,
                 uniqueStepName: 'Step7'
-            }).pipe({
+            })
+            .clearCheckpoint()
+            .pipe({
                 type: SimplePipeTask.TASK_TYPE_NAME,
                 uniqueStepName: 'Step8'
             }).start();

@@ -15,7 +15,7 @@ class DelayPipeTask extends PipeTask<InputWithPreviousInputs, OutputWithStatus>{
 
     async execute(pipeWorkInstance: PipeWorks, inputs: { last: any[]; }) {
         let count = inputs?.last ? inputs?.last[0]?.count || 0 : 0
-        this.onLog("Sleeping for ", this.sleepForMs / 1000, 'seconds')
+        this.onLog("Sleeping for", this.sleepForMs / 1000, 'seconds')
         await new Promise(resolve => setTimeout(resolve, this.sleepForMs));
         return inputs?.last || [{
             status: true,
@@ -24,6 +24,7 @@ class DelayPipeTask extends PipeTask<InputWithPreviousInputs, OutputWithStatus>{
     }
 
     kill(): boolean {
+        this.onLog("DelayPipeTask Kill Requested")
         return true;
     }
 }

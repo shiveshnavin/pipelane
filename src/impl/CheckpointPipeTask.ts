@@ -7,12 +7,18 @@ class CheckpointPipeTask extends PipeTask<InputWithPreviousInputs, OutputWithSta
 
     public static TASK_TYPE_NAME = "CheckpointPipeTask";
 
-    constructor() {
-        super(CheckpointPipeTask.TASK_TYPE_NAME, 'default');
+    private action: string;
+
+    constructor(action?: string) {
+        super(CheckpointPipeTask.TASK_TYPE_NAME, action);
+        this.action = action || 'create';
     }
 
     async execute(pipeWorkInstance: PipeWorks, inputs: { last: any[]; }) {
-        await pipeWorkInstance._saveCheckpoint()
+        if (this.action == 'clear')
+            await pipeWorkInstance._removeCheckpoint()
+        else
+            await pipeWorkInstance._saveCheckpoint()
         return inputs?.last || [{
             status: true,
             time: Date.now()
@@ -20,6 +26,7 @@ class CheckpointPipeTask extends PipeTask<InputWithPreviousInputs, OutputWithSta
     }
 
     kill(): boolean {
+        this.onLog("CheckpointPipeTask Kill Requested")
         return true;
     }
 }

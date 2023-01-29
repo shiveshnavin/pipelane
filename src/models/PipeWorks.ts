@@ -78,7 +78,7 @@ class PipeWorks {
         }
         this.taskVariantConfig = Object.assign({
             [DelayPipeTask.TASK_TYPE_NAME]: [new DelayPipeTask(1000)],
-            [CheckpointPipeTask.TASK_TYPE_NAME]: [new CheckpointPipeTask()]
+            [CheckpointPipeTask.TASK_TYPE_NAME]: [new CheckpointPipeTask('create'), new CheckpointPipeTask('clear')]
         }, taskVariantConfig);
         return this;
     }
@@ -110,6 +110,13 @@ class PipeWorks {
         this.onLog("Checkpoint saved to", chFile)
     }
 
+    public async _removeCheckpoint() {
+        let chFile = path.join(this.checkpointFolderPath, `./checkpoint_${this.name}.json`);
+        if (fs.existsSync(chFile))
+            fs.unlinkSync(chFile)
+        this.onLog("Checkpoint removed", chFile)
+    }
+
     private _loadCheckpoint(pipeName: string) {
         let chFile = path.join(this.checkpointFolderPath, `./checkpoint_${pipeName}.json`);
         if (!fs.existsSync(chFile)) {
@@ -137,7 +144,7 @@ class PipeWorks {
         }
         return {
             type: task.type || 'task',
-            uniqueStepName: task.uniqueStepName || task.variantType || task.type,
+            uniqueStepName: task.uniqueStepName,
             variantType: task.variantType,
             numberOfShards: task.numberOfShards || 0,
             isParallel: task.isParallel || false,
@@ -212,7 +219,7 @@ class PipeWorks {
         }
 
         if (PipeWorks.LOGGING_LEVEL > 3) {
-            this.onLog('Executing step', curTaskConfig.uniqueStepName)
+            this.onLog('Executing step', curTaskConfig.uniqueStepName || curTaskConfig.variantType || curTaskConfig.type)
         }
 
         while (curTaskConfig.isParallel) {
@@ -234,6 +241,9 @@ class PipeWorks {
 
         let pw = this;
         this.lastTaskOutput = []
+        this.currentExecutionTasks = []
+        this.currentExecutionPromises = []
+
         this.currentExecutionTasks.push(...tasksToExecute);
         this.currentExecutionPromises.push(...tasksToExecute.map((taskExecution) => {
             return taskExecution.task._execute(pw, {
@@ -330,8 +340,22 @@ class PipeWorks {
     public checkpoint(): PipeWorks {
         let config = this.defaultVariablePipeTaskParams({
             type: CheckpointPipeTask.TASK_TYPE_NAME,
-            variantType: 'default',
-            uniqueStepName: 'Checkpoint'
+            variantType: 'create'
+        })
+        config.getTaskVariant(config.type);
+        this.tasks.push(config);
+        return this;
+    }
+
+
+    /**
+     * Removes a checkpoint with the current pipeline state
+     * @returns {PipeWorks}
+     */
+    public clearCheckpoint(): PipeWorks {
+        let config = this.defaultVariablePipeTaskParams({
+            type: CheckpointPipeTask.TASK_TYPE_NAME,
+            variantType: 'clear'
         })
         config.getTaskVariant(config.type);
         this.tasks.push(config);
