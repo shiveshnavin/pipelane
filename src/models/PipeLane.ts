@@ -383,7 +383,7 @@ class PipeLane {
      * @param inputs Inputs for the PipeWork
      * @returns A promise which will resolve when all the tasks are completed
      */
-    public start(inputs?: any): Promise<any> {
+    public async start(inputs?: any): Promise<any> {
         this.inputs = inputs;
         this.currentExecutionPromises = [];
         if (this.isEnableCheckpoints) {
@@ -392,7 +392,8 @@ class PipeLane {
         this.isRunning = true;
         this.onLog("Started executing pipework", this.name || '')
 
-        return this.execute();
+        await this.execute();
+        return this.lastTaskOutput;
     }
 
 

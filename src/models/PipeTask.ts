@@ -11,7 +11,7 @@ interface InputWithPreviousInputs {
 
 
 function OnLog(args: any) {
-    let log = moment(new Date()).format("DD/MM/YYYY hh:mm:ss") + ' ';
+    let log = '[pipelane]' + moment(new Date()).format("DD/MM/YYYY hh:mm:ss") + ' ';
     args.forEach(str => {
         if (['number', 'string', 'boolean'].indexOf(typeof str) > -1) {
             log = log.concat(str).concat(' ')
