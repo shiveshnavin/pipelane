@@ -27,6 +27,7 @@ interface VariablePipeTask {
 
     isParallel?: Boolean;
     numberOfShards?: number;
+    itemsPerShard?: number;
 }
 
 
@@ -52,9 +53,9 @@ class PipeLane {
     private currentExecutionPromises: Promise<any>[] = [];
     private currentExecutionTasks: {
         task: PipeTask<InputWithPreviousInputs, OutputWithStatus>,
-        inputs: OutputWithStatus[]
+        inputs: InputWithPreviousInputs
     }[] = [];
-    private lastTaskOutput: OutputWithStatus[];
+    public lastTaskOutput: OutputWithStatus[];
 
     private taskVariantConfig: TaskVariantConfig;
 
@@ -130,7 +131,7 @@ class PipeLane {
         let obj: PipeLane = this.deserialize(JSON.parse(checkPointBlob));
         this.executedTasks = obj.executedTasks;
         this.inputs = obj.inputs;
-
+        this.lastTaskOutput = obj.lastTaskOutput
         this.isRunning = false;
         this.name = pipeName;
         this.currentTaskIdx = obj.currentTaskIdx;
@@ -147,7 +148,9 @@ class PipeLane {
             uniqueStepName: task.uniqueStepName,
             variantType: task.variantType,
             numberOfShards: task.numberOfShards || 0,
+            itemsPerShard: task.itemsPerShard || 0,
             isParallel: task.isParallel || false,
+            additionalInputs: task.additionalInputs,
             getTaskVariant: (type: string, variantType: string) => {
                 if (!this.taskVariantConfig.hasOwnProperty(type)) {
                     throw Error('Fatal: No task with name ' + type + 'exists in taskVariantConfig')
@@ -198,23 +201,42 @@ class PipeLane {
         let lastTaskOutputs: OutputWithStatus[] = this.lastTaskOutput;
         let tasksToExecute: {
             task: PipeTask<InputWithPreviousInputs, OutputWithStatus>,
-            inputs: OutputWithStatus[]
+            inputs: InputWithPreviousInputs
         }[] = []
         let curTaskConfig = this.tasks[this.currentTaskIdx++]
 
-        if (lastTaskOutputs && curTaskConfig.numberOfShards > 0 && curTaskConfig.numberOfShards <= lastTaskOutputs.length) {
+        if (lastTaskOutputs && curTaskConfig.itemsPerShard > 0) {
+            curTaskConfig.numberOfShards = Math.max(1, lastTaskOutputs.length / (curTaskConfig.itemsPerShard))
             let inputShards = splitArray(lastTaskOutputs, curTaskConfig.numberOfShards)
             inputShards.forEach(shardInput => {
                 tasksToExecute.push({
                     task: curTaskConfig.getTaskVariant(curTaskConfig.type, curTaskConfig.variantType),
-                    inputs: shardInput
+                    inputs: {
+                        last: shardInput,
+                        additionalInputs: curTaskConfig.additionalInputs
+                    }
+                });
+            })
+        }
+        else if (lastTaskOutputs && curTaskConfig.numberOfShards > 0 && curTaskConfig.numberOfShards <= lastTaskOutputs.length) {
+            let inputShards = splitArray(lastTaskOutputs, curTaskConfig.numberOfShards)
+            inputShards.forEach(shardInput => {
+                tasksToExecute.push({
+                    task: curTaskConfig.getTaskVariant(curTaskConfig.type, curTaskConfig.variantType),
+                    inputs: {
+                        last: shardInput,
+                        additionalInputs: curTaskConfig.additionalInputs
+                    }
                 });
             })
         }
         else {
             tasksToExecute.push({
                 task: curTaskConfig.getTaskVariant(curTaskConfig.type, curTaskConfig.variantType),
-                inputs: lastTaskOutputs
+                inputs: {
+                    last: lastTaskOutputs,
+                    additionalInputs: curTaskConfig.additionalInputs
+                }
             });
         }
 
@@ -230,7 +252,10 @@ class PipeLane {
             if (curTaskConfig.isParallel) {
                 tasksToExecute.push({
                     task: curTaskConfig.getTaskVariant(curTaskConfig.type, curTaskConfig.variantType),
-                    inputs: lastTaskOutputs
+                    inputs: {
+                        last: lastTaskOutputs,
+                        additionalInputs: curTaskConfig.additionalInputs
+                    }
                 });
                 if (PipeLane.LOGGING_LEVEL > 3) {
                     this.onLog('Executing step', curTaskConfig.uniqueStepName)
@@ -246,9 +271,7 @@ class PipeLane {
 
         this.currentExecutionTasks.push(...tasksToExecute);
         this.currentExecutionPromises.push(...tasksToExecute.map((taskExecution) => {
-            return taskExecution.task._execute(pw, {
-                last: taskExecution.inputs
-            }).then((result: OutputWithStatus[]) => {
+            return taskExecution.task._execute(pw, taskExecution.inputs).then((result: OutputWithStatus[]) => {
                 this.lastTaskOutput.push(...result)
             }).catch(e => {
                 this.onLog("Error in ", taskExecution.task.getTaskTypeName(), e.message)
@@ -258,17 +281,21 @@ class PipeLane {
             })
         }))
 
-        return Promise.all(this.currentExecutionPromises)
-            .then(results => {
-                if (this.isRunning)
-                    this.execute();
-            })
-            .catch(e => {
-                console.log(e)
-                this.onLog("Error executing tasks", e.message)
-                if (this.isRunning)
-                    this.execute();
-            })
+        return new Promise((resolve, reject) => {
+            Promise.all(this.currentExecutionPromises)
+                .then(async (results) => {
+                    if (this.isRunning)
+                        await this.execute();
+                    resolve(this.lastTaskOutput)
+                })
+                .catch(async (e) => {
+                    console.log(e)
+                    this.onLog("Error executing tasks", e.message)
+                    if (this.isRunning)
+                        await this.execute();
+                    resolve(this.lastTaskOutput)
+                })
+        })
 
     }
 
@@ -322,8 +349,11 @@ class PipeLane {
      * @returns PipeLane
      */
     public shardedPipe(taskConfig: VariablePipeTask): PipeLane {
-        if (!taskConfig.numberOfShards) {
-            throw new Error("Must specify numberOfShards")
+        if (!taskConfig.numberOfShards && !taskConfig.itemsPerShard) {
+            throw new Error("Must specify numberOfShards or itemsPerShard")
+        }
+        if (taskConfig.numberOfShards && taskConfig.itemsPerShard) {
+            throw new Error("Cannot specify both numberOfShards and itemsPerShard")
         }
         let config = this.defaultVariablePipeTaskParams(taskConfig)
 
@@ -353,12 +383,7 @@ class PipeLane {
      * @returns {PipeLane}
      */
     public clearCheckpoint(): PipeLane {
-        let config = this.defaultVariablePipeTaskParams({
-            type: CheckpointPipeTask.TASK_TYPE_NAME,
-            variantType: 'clear'
-        })
-        config.getTaskVariant(config.type);
-        this.tasks.push(config);
+        this._removeCheckpoint();
         return this;
     }
 

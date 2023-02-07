@@ -6,7 +6,8 @@ interface OutputWithStatus {
 }
 
 interface InputWithPreviousInputs {
-    last: OutputWithStatus[]
+    last: OutputWithStatus[],
+    additionalInputs: any
 }
 
 

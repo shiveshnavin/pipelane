@@ -15,6 +15,7 @@ class CheckpointPipeTask extends PipeTask<InputWithPreviousInputs, OutputWithSta
     }
 
     async execute(pipeWorkInstance: PipeLane, inputs: { last: any[]; }) {
+        pipeWorkInstance.lastTaskOutput = inputs.last
         if (this.action == 'clear')
             await pipeWorkInstance._removeCheckpoint()
         else

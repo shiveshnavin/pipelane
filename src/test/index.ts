@@ -45,6 +45,9 @@ describe('PipeLane Test', () => {
             .pipe({
                 type: SimplePipeTask.TASK_TYPE_NAME,
                 uniqueStepName: 'Step8'
-            }).start();
+            }).start()
+            .then((data) => {
+                console.log("DONE")
+            })
     });
 });
