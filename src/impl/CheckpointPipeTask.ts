@@ -15,11 +15,13 @@ class CheckpointPipeTask extends PipeTask<InputWithPreviousInputs, OutputWithSta
     }
 
     async execute(pipeWorkInstance: PipeLane, inputs: { last: any[]; }) {
-        pipeWorkInstance.lastTaskOutput = inputs.last
+        let tmp = pipeWorkInstance.lastTaskOutput
+        pipeWorkInstance.lastTaskOutput = inputs.last;
         if (this.action == 'clear')
-            await pipeWorkInstance._removeCheckpoint()
+            await pipeWorkInstance._removeCheckpoint();
         else
-            await pipeWorkInstance._saveCheckpoint()
+            await pipeWorkInstance._saveCheckpoint();
+        pipeWorkInstance.lastTaskOutput = tmp;
         return inputs?.last || [{
             status: true,
             time: Date.now()
