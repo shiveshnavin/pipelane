@@ -69,6 +69,8 @@ class PipeLane {
     }
 
     public getInputs(): any {
+        if (!this.inputs)
+            this.inputs = {}
         return this.inputs;
     }
 
