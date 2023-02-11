@@ -68,6 +68,10 @@ class PipeLane {
         this.workspaceFolder = './pipelane'
     }
 
+    public getInputs(): any {
+        return this.inputs;
+    }
+
     public setWorkSpaceFolder(path: string): PipeLane {
         this.workspaceFolder = path;
         return this;
