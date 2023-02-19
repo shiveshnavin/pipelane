@@ -118,8 +118,14 @@ class PipeLane {
 
     public async _saveCheckpoint() {
         let chFile = path.join(this.checkpointFolderPath, `./checkpoint_${this.name}.json`);
-        fs.writeFileSync(chFile, JSON.stringify(this, undefined, 2))
-        this.onLog("Checkpoint saved to", chFile)
+        let json = JSON.stringify(this, (key, value) => {
+            if (key === 'pipeWorkInstance') {
+                return undefined;
+            }
+            return value;
+        })
+        fs.writeFileSync(chFile, JSON.stringify(JSON.parse(json), undefined, 2));
+        this.onLog("Checkpoint saved to", chFile);
     }
 
     public async _removeCheckpoint() {
