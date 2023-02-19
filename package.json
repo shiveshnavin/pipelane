@@ -1,6 +1,6 @@
 {
   "name": "pipelane",
-  "version": "2.0.1",
+  "version": "2.0.3",
   "description": "A library to perform set of tasks with plug and play elements",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
