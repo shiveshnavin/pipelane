@@ -12,7 +12,7 @@ interface InputWithPreviousInputs {
 
 
 function OnLog(args: any) {
-    let log = '[pipelane]' + moment(new Date()).format("DD/MM/YYYY hh:mm:ss") + ' ';
+    let log = '[pipelane] ' + moment(new Date()).format("DD/MM/YYYY hh:mm:ss") + ' ';
     args.forEach(str => {
         if (['number', 'string', 'boolean'].indexOf(typeof str) > -1) {
             log = log.concat(str).concat(' ')
@@ -42,6 +42,7 @@ abstract class PipeTask<I extends InputWithPreviousInputs, O extends OutputWithS
 
     private startTime: Number;
     private endTime: Number;
+    private pipeWorkInstance: PipeLane;
 
     constructor(taskTypeName: string, taskVariantName: string) {
         this.taskTypeName = taskTypeName;
@@ -53,6 +54,9 @@ abstract class PipeTask<I extends InputWithPreviousInputs, O extends OutputWithS
         if (PipeTask.LOGGING_LEVEL >= 2) {
             console.log(OnLog(args))
         }
+        if (this.pipeWorkInstance?.onLogSink) {
+            this.pipeWorkInstance?.onLogSink(OnLog(args))
+        }
     }
 
 
@@ -60,6 +64,7 @@ abstract class PipeTask<I extends InputWithPreviousInputs, O extends OutputWithS
     public async _execute(pipeWorkInstance: PipeLane, inputs: I): Promise<O[]> {
         this.init();
         try {
+            this.pipeWorkInstance = pipeWorkInstance;
             let result = await this.execute(pipeWorkInstance, inputs);
             this.outputs = result;
             this.status = result && result.length > 0;

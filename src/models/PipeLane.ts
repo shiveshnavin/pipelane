@@ -49,6 +49,7 @@ class PipeLane {
     private isRunning: boolean;
     private isEnableCheckpoints: boolean;
     private checkpointFolderPath: string;
+    private onLogSink: Function;
 
     private currentExecutionPromises: Promise<any>[] = [];
     private currentExecutionTasks: {
@@ -66,6 +67,10 @@ class PipeLane {
     constructor(taskVariantConfig: TaskVariantConfig) {
         this.setTaskVariantsConfig(taskVariantConfig);
         this.workspaceFolder = './pipelane'
+    }
+
+    public setOnLogSink(onLogSink) {
+        this.onLogSink = onLogSink;
     }
 
     public getInputs(): any {
@@ -190,6 +195,9 @@ class PipeLane {
     private onLog = function (...args: any[]) {
         if (PipeLane.LOGGING_LEVEL >= 2) {
             console.log(OnLog(args))
+        }
+        if (this.onLogSink) {
+            this.onLogSink(OnLog(args))
         }
     }
 
