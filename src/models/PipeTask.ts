@@ -49,7 +49,7 @@ abstract class PipeTask<I extends InputWithPreviousInputs, O extends OutputWithS
         this.taskVariantName = taskVariantName;
     }
 
-    protected onLog = function (...args: any[]) {
+    public onLog = function (...args: any[]) {
         this.logs.push(OnLog(args))
         if (PipeTask.LOGGING_LEVEL >= 2) {
             console.log(OnLog(args))

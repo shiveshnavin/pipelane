@@ -192,7 +192,7 @@ class PipeLane {
         }
     }
 
-    private onLog = function (...args: any[]) {
+    public onLog = function (...args: any[]) {
         if (PipeLane.LOGGING_LEVEL >= 2) {
             console.log(OnLog(args))
         }
