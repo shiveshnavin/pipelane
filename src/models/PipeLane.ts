@@ -18,16 +18,24 @@ function splitArray<T>(arr: T[], pieces: number): T[][] {
     return result;
 }
 
+async function forEachAsync(arr: any, cb: Function) {
+    for (let index = 0; index < arr.length; index++) {
+        const element = arr[index];
+        await cb(element, index)
+
+    }
+}
 interface VariablePipeTask {
     type: string;
     uniqueStepName?: string;
     variantType?: string;
     additionalInputs?: Object;
-    getTaskVariant?: (name: String, variantName?: string) => PipeTask<InputWithPreviousInputs, OutputWithStatus>;
+    getTaskVariant?: (name: String, variantName?: string) => Promise<PipeTask<InputWithPreviousInputs, OutputWithStatus>>;
 
     isParallel?: Boolean;
     numberOfShards?: number;
     itemsPerShard?: number;
+    cutoffLoadThreshold?: number;
 }
 
 
@@ -118,6 +126,10 @@ class PipeLane {
 
     public async _saveCheckpoint() {
         try {
+            if (!this.checkpointFolderPath) {
+                this.onLog(`Skipping saving checkpoint as checkpointFolderPath is not defined. did you call enableCheckpoints(<checkpoint-name>)`)
+                return
+            }
             let chFile = path.join(this.checkpointFolderPath, `./checkpoint_${this.name}.json`);
             let json = JSON.stringify(this, (key, value) => {
                 if (key === 'pipeWorkInstance') {
@@ -172,10 +184,13 @@ class PipeLane {
             itemsPerShard: task.itemsPerShard || 0,
             isParallel: task.isParallel || false,
             additionalInputs: task.additionalInputs,
-            getTaskVariant: (type: string, variantType: string) => {
+            cutoffLoadThreshold: task.cutoffLoadThreshold || 100,
+            getTaskVariant: async (type: string, variantType: string) => {
                 if (!this.taskVariantConfig.hasOwnProperty(type)) {
                     throw Error('Fatal: No task with name ' + type + 'exists in taskVariantConfig')
                 }
+                if (!task.cutoffLoadThreshold)
+                    task.cutoffLoadThreshold = 100
                 if (variantType) {
                     let matchingVariant: PipeTask<InputWithPreviousInputs, OutputWithStatus> = undefined;
                     Object.keys(this.taskVariantConfig).forEach((key: string) => {
@@ -185,18 +200,32 @@ class PipeLane {
                                 matchingVariant = taskVariant;
                             }
                         })
-
                     });
                     if (matchingVariant) {
-                        let clone = lodash.cloneDeep(matchingVariant);
+                        let clone: PipeTask<InputWithPreviousInputs, OutputWithStatus> = lodash.cloneDeep(matchingVariant);
+                        let currentLoad = await clone.getLoad()
+                        if ((currentLoad) >= task.cutoffLoadThreshold) {
+                            this.onLog(`Found a task defined in taskVariantConfig of type "${type}" and variantType "${variantType}" but the Current load = ${currentLoad} already exceeded threshold ${task.cutoffLoadThreshold}.`)
+                            this.stop()
+                            throw Error(`Found a task defined in taskVariantConfig of type "${type}" and variantType ${variantType} but the Current load = ${currentLoad} already exceeded threshold ${task.cutoffLoadThreshold}.`)
+                        }
                         return clone
                     }
+                    else {
+                        throw Error(`No task defined in taskVariantConfig of type "${type}" and variantType ${variantType}`)
+                    }
                 }
-                let task: PipeTask<InputWithPreviousInputs, OutputWithStatus> = this.taskVariantConfig[type][0];
-                if (!task) {
-                    throw Error("No task defined in taskVariantConfig of type " + type)
+
+                let selectedTask: PipeTask<InputWithPreviousInputs, OutputWithStatus>;
+                await forEachAsync(this.taskVariantConfig[type], async (curTask: PipeTask<InputWithPreviousInputs, OutputWithStatus>) => {
+                    if ((await curTask.getLoad()) < (task.cutoffLoadThreshold)) {
+                        selectedTask = curTask;
+                    }
+                })
+                if (!selectedTask) {
+                    throw Error(`No task defined in taskVariantConfig of type ${type} or all tasks have load already exceeding threshold of ${task.cutoffLoadThreshold}`)
                 }
-                let clone = lodash.cloneDeep(task);
+                let clone = lodash.cloneDeep(selectedTask);
                 return clone
             }
         }
@@ -215,7 +244,7 @@ class PipeLane {
         return Object.assign(new PipeLane(this.taskVariantConfig), d);
     }
 
-    private execute(): Promise<any> {
+    private async execute(): Promise<any> {
         this.isRunning = true;
         if (this.currentTaskIdx >= this.tasks.length) {
             this.onLog("All tasks completed")
@@ -229,39 +258,56 @@ class PipeLane {
         }[] = []
         let curTaskConfig = this.tasks[this.currentTaskIdx++]
 
-        if (lastTaskOutputs && curTaskConfig.itemsPerShard > 0) {
-            curTaskConfig.numberOfShards = Math.max(1, lastTaskOutputs.length / (curTaskConfig.itemsPerShard))
-            let inputShards = splitArray(lastTaskOutputs, curTaskConfig.numberOfShards)
-            inputShards.forEach(shardInput => {
+        try {
+
+            if (lastTaskOutputs && curTaskConfig.itemsPerShard > 0) {
+                curTaskConfig.numberOfShards = Math.max(1, lastTaskOutputs.length / (curTaskConfig.itemsPerShard))
+                let inputShards = splitArray(lastTaskOutputs, curTaskConfig.numberOfShards)
+                await forEachAsync(inputShards, async (shardInput) => {
+                    tasksToExecute.push({
+                        task: await curTaskConfig.getTaskVariant(curTaskConfig.type, curTaskConfig.variantType),
+                        inputs: {
+                            last: shardInput,
+                            additionalInputs: curTaskConfig.additionalInputs
+                        }
+                    });
+                })
+            }
+            else if (lastTaskOutputs && curTaskConfig.numberOfShards > 0 && curTaskConfig.numberOfShards <= lastTaskOutputs.length) {
+                let inputShards = splitArray(lastTaskOutputs, curTaskConfig.numberOfShards)
+                await forEachAsync(inputShards, async (shardInput) => {
+                    tasksToExecute.push({
+                        task: await curTaskConfig.getTaskVariant(curTaskConfig.type, curTaskConfig.variantType),
+                        inputs: {
+                            last: shardInput,
+                            additionalInputs: curTaskConfig.additionalInputs
+                        }
+                    });
+                })
+            }
+            else {
                 tasksToExecute.push({
-                    task: curTaskConfig.getTaskVariant(curTaskConfig.type, curTaskConfig.variantType),
+                    task: (await curTaskConfig.getTaskVariant(curTaskConfig.type, curTaskConfig.variantType)),
                     inputs: {
-                        last: shardInput,
+                        last: lastTaskOutputs,
                         additionalInputs: curTaskConfig.additionalInputs
                     }
                 });
+            }
+        } catch (e) {
+
+            if (PipeLane.LOGGING_LEVEL > 2) {
+                console.log(e)
+            }
+            if (!this.lastTaskOutput) {
+                this.lastTaskOutput = []
+            }
+            this.lastTaskOutput.push({
+                status: false
             })
-        }
-        else if (lastTaskOutputs && curTaskConfig.numberOfShards > 0 && curTaskConfig.numberOfShards <= lastTaskOutputs.length) {
-            let inputShards = splitArray(lastTaskOutputs, curTaskConfig.numberOfShards)
-            inputShards.forEach(shardInput => {
-                tasksToExecute.push({
-                    task: curTaskConfig.getTaskVariant(curTaskConfig.type, curTaskConfig.variantType),
-                    inputs: {
-                        last: shardInput,
-                        additionalInputs: curTaskConfig.additionalInputs
-                    }
-                });
-            })
-        }
-        else {
-            tasksToExecute.push({
-                task: curTaskConfig.getTaskVariant(curTaskConfig.type, curTaskConfig.variantType),
-                inputs: {
-                    last: lastTaskOutputs,
-                    additionalInputs: curTaskConfig.additionalInputs
-                }
-            });
+            this.onLog("Fatal error while retrieving task variant", e.message)
+            this.stop()
+            return
         }
 
         if (PipeLane.LOGGING_LEVEL > 3) {
@@ -275,7 +321,7 @@ class PipeLane {
             curTaskConfig = this.tasks[this.currentTaskIdx]
             if (curTaskConfig.isParallel) {
                 tasksToExecute.push({
-                    task: curTaskConfig.getTaskVariant(curTaskConfig.type, curTaskConfig.variantType),
+                    task: await curTaskConfig.getTaskVariant(curTaskConfig.type, curTaskConfig.variantType),
                     inputs: {
                         last: lastTaskOutputs,
                         additionalInputs: curTaskConfig.additionalInputs
@@ -329,7 +375,7 @@ class PipeLane {
      */
     public async stop() {
         this.isRunning = false;
-        if (this.enableCheckpoints)
+        if (this.isEnableCheckpoints)
             this._saveCheckpoint()
         this.currentExecutionTasks.forEach(ts => {
             ts.task.kill()

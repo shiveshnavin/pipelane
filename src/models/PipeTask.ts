@@ -112,6 +112,13 @@ abstract class PipeTask<I extends InputWithPreviousInputs, O extends OutputWithS
      */
     abstract execute(pipeWorkInstance: PipeLane, inputs: I): Promise<O[]>;
 
+    /**
+     * Used to Must provide `cutoffLoadThreshold` in the Variant Config to highlight the load at which * this task will no longer be selected for execution
+     * @returns {Number} representing load between 0 - 100 
+     */
+    public async getLoad(): Promise<number> {
+        return 0;
+    }
 }
 
 export { OnLog, InputWithPreviousInputs, OutputWithStatus };
