@@ -14,7 +14,7 @@ class SimplePipeTask extends PipeTask<InputWithPreviousInputs, { count: number }
     async execute(pipeWorkInstance: PipeLane, inputs: { last: any[]; }) {
         let count = inputs?.last ? inputs?.last[0]?.count || 0 : 0
         this.onLog("Hello from", this.getTaskTypeName(), this.getTaskVariantName(), 'count=', count)
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 100));
         return [{
             status: true,
             count: count + 1,
