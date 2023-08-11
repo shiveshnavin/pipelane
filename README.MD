@@ -84,3 +84,24 @@ Similar to `parallelPipe` with key difference that, the input to this task is sp
          numberOfShards: 2 // Mandatory
        })
 ```
+
+
+### Load Balancing
+Load balancing will be particularly helpful if you want to split the tasks uniformly among the variants. If a `variantType` is not specified while piping then the first variant with load less than the `cutoffLoadThreshold` will be selected while if `variantType` is specified and if its overloaded then pipelane will stop with an error.
+
+```
+.pipe({
+        type: SimplePipeTask.TASK_TYPE_NAME,
+        uniqueStepName: 'Step8',
+        variantType: 'simplevar1',
+        cutoffLoadThreshold: 99
+      })
+```
+Make sure to override the `getLoad()` in your Task class.
+
+```
+async onLoad(){
+    let currentLoad = ...; // calculate your load
+    return currentLoad;
+}
+```
