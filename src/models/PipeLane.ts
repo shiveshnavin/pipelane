@@ -218,9 +218,10 @@ class PipeLane {
 
                 let selectedTask: PipeTask<InputWithPreviousInputs, OutputWithStatus>;
                 await forEachAsync(this.taskVariantConfig[type], async (curTask: PipeTask<InputWithPreviousInputs, OutputWithStatus>) => {
-                    if ((await curTask.getLoad()) < (task.cutoffLoadThreshold)) {
-                        selectedTask = curTask;
-                    }
+                    if (!selectedTask)
+                        if ((await curTask.getLoad()) < (task.cutoffLoadThreshold)) {
+                            selectedTask = curTask;
+                        }
                 })
                 if (!selectedTask) {
                     throw Error(`No task defined in taskVariantConfig of type ${type} or all tasks have load already exceeding threshold of ${task.cutoffLoadThreshold}`)
