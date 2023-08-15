@@ -176,6 +176,50 @@ class PipeLane {
         if (task.uniqueStepName && this.tasks.map(ts => ts.uniqueStepName).indexOf(task.uniqueStepName) > -1) {
             throw new Error("A step with same uniqueStepName '" + task.uniqueStepName + "' already exists")
         }
+        let fnGetDefaultTaskVariant = async (type: string, variantType: string) => {
+            if (!this.taskVariantConfig.hasOwnProperty(type)) {
+                throw Error('Fatal: No task with name ' + type + 'exists in taskVariantConfig')
+            }
+            if (!task.cutoffLoadThreshold)
+                task.cutoffLoadThreshold = 100
+            if (variantType) {
+                let matchingVariant: PipeTask<InputWithPreviousInputs, OutputWithStatus> = undefined;
+                Object.keys(this.taskVariantConfig).forEach((key: string) => {
+                    let tasks = this.taskVariantConfig[key];
+                    tasks.forEach((taskVariant: PipeTask<InputWithPreviousInputs, OutputWithStatus>) => {
+                        if (taskVariant.getTaskTypeName() == type && taskVariant.getTaskVariantName() == variantType) {
+                            matchingVariant = taskVariant;
+                        }
+                    })
+                });
+                if (matchingVariant) {
+                    let clone: PipeTask<InputWithPreviousInputs, OutputWithStatus> = lodash.cloneDeep(matchingVariant);
+                    let currentLoad = await clone.getLoad()
+                    if ((currentLoad) >= task.cutoffLoadThreshold) {
+                        this.onLog(`Found a task defined in taskVariantConfig of type "${type}" and variantType "${variantType}" but the Current load = ${currentLoad} already exceeded threshold ${task.cutoffLoadThreshold}.`)
+                        this.stop()
+                        throw Error(`Found a task defined in taskVariantConfig of type "${type}" and variantType ${variantType} but the Current load = ${currentLoad} already exceeded threshold ${task.cutoffLoadThreshold}.`)
+                    }
+                    return clone
+                }
+                else {
+                    throw Error(`No task defined in taskVariantConfig of type "${type}" and variantType ${variantType}`)
+                }
+            }
+
+            let selectedTask: PipeTask<InputWithPreviousInputs, OutputWithStatus>;
+            await forEachAsync(this.taskVariantConfig[type], async (curTask: PipeTask<InputWithPreviousInputs, OutputWithStatus>) => {
+                if (!selectedTask)
+                    if ((await curTask.getLoad()) < (task.cutoffLoadThreshold)) {
+                        selectedTask = curTask;
+                    }
+            })
+            if (!selectedTask) {
+                throw Error(`No task defined in taskVariantConfig of type ${type} or all tasks have load already exceeding threshold of ${task.cutoffLoadThreshold}`)
+            }
+            let clone = lodash.cloneDeep(selectedTask);
+            return clone
+        }
         return {
             type: task.type || 'task',
             uniqueStepName: task.uniqueStepName,
@@ -185,50 +229,7 @@ class PipeLane {
             isParallel: task.isParallel || false,
             additionalInputs: task.additionalInputs,
             cutoffLoadThreshold: task.cutoffLoadThreshold || 100,
-            getTaskVariant: async (type: string, variantType: string) => {
-                if (!this.taskVariantConfig.hasOwnProperty(type)) {
-                    throw Error('Fatal: No task with name ' + type + 'exists in taskVariantConfig')
-                }
-                if (!task.cutoffLoadThreshold)
-                    task.cutoffLoadThreshold = 100
-                if (variantType) {
-                    let matchingVariant: PipeTask<InputWithPreviousInputs, OutputWithStatus> = undefined;
-                    Object.keys(this.taskVariantConfig).forEach((key: string) => {
-                        let tasks = this.taskVariantConfig[key];
-                        tasks.forEach((taskVariant: PipeTask<InputWithPreviousInputs, OutputWithStatus>) => {
-                            if (taskVariant.getTaskTypeName() == type && taskVariant.getTaskVariantName() == variantType) {
-                                matchingVariant = taskVariant;
-                            }
-                        })
-                    });
-                    if (matchingVariant) {
-                        let clone: PipeTask<InputWithPreviousInputs, OutputWithStatus> = lodash.cloneDeep(matchingVariant);
-                        let currentLoad = await clone.getLoad()
-                        if ((currentLoad) >= task.cutoffLoadThreshold) {
-                            this.onLog(`Found a task defined in taskVariantConfig of type "${type}" and variantType "${variantType}" but the Current load = ${currentLoad} already exceeded threshold ${task.cutoffLoadThreshold}.`)
-                            this.stop()
-                            throw Error(`Found a task defined in taskVariantConfig of type "${type}" and variantType ${variantType} but the Current load = ${currentLoad} already exceeded threshold ${task.cutoffLoadThreshold}.`)
-                        }
-                        return clone
-                    }
-                    else {
-                        throw Error(`No task defined in taskVariantConfig of type "${type}" and variantType ${variantType}`)
-                    }
-                }
-
-                let selectedTask: PipeTask<InputWithPreviousInputs, OutputWithStatus>;
-                await forEachAsync(this.taskVariantConfig[type], async (curTask: PipeTask<InputWithPreviousInputs, OutputWithStatus>) => {
-                    if (!selectedTask)
-                        if ((await curTask.getLoad()) < (task.cutoffLoadThreshold)) {
-                            selectedTask = curTask;
-                        }
-                })
-                if (!selectedTask) {
-                    throw Error(`No task defined in taskVariantConfig of type ${type} or all tasks have load already exceeding threshold of ${task.cutoffLoadThreshold}`)
-                }
-                let clone = lodash.cloneDeep(selectedTask);
-                return clone
-            }
+            getTaskVariant: task.getTaskVariant || fnGetDefaultTaskVariant
         }
     }
 
