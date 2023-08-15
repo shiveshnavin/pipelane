@@ -395,7 +395,7 @@ class PipeLane {
     public pipe(taskConfig: VariablePipeTask): PipeLane {
         let config = this.defaultVariablePipeTaskParams(taskConfig)
 
-        config.getTaskVariant(config.type);
+        config.getTaskVariant(config.type, config.variantType);
         this.tasks.push(config);
         return this;
     }
@@ -409,7 +409,7 @@ class PipeLane {
     public parallelPipe(taskConfig: VariablePipeTask): PipeLane {
         let config = this.defaultVariablePipeTaskParams(taskConfig)
 
-        config.getTaskVariant(config.type);
+        config.getTaskVariant(config.type, config.variantType);
         config.isParallel = true;
         this.tasks.push(config);
         return this;
@@ -429,7 +429,7 @@ class PipeLane {
         }
         let config = this.defaultVariablePipeTaskParams(taskConfig)
 
-        config.getTaskVariant(config.type);
+        config.getTaskVariant(config.type, config.variantType);
         this.tasks.push(config);
         return this;
     }
@@ -444,7 +444,7 @@ class PipeLane {
             type: CheckpointPipeTask.TASK_TYPE_NAME,
             variantType: 'create'
         })
-        config.getTaskVariant(config.type);
+        config.getTaskVariant(config.type, config.variantType);
         this.tasks.push(config);
         return this;
     }
@@ -469,7 +469,7 @@ class PipeLane {
             type: DelayPipeTask.TASK_TYPE_NAME
         })
 
-        config.getTaskVariant(config.type);
+        config.getTaskVariant(config.type, config.variantType);
         this.tasks.push(config);
         return this;
     }
