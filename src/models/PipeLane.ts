@@ -7,6 +7,26 @@ import DelayPipeTask from "../impl/DelayPipeTask";
 import CheckpointPipeTask from "../impl/CheckpointPipeTask";
 
 
+function waitForFirstPromise(promises): any {
+    return new Promise((resolve, reject) => {
+        let rejectedCount = 0;
+
+        promises.forEach((promise) => {
+            promise
+                .then((result) => {
+                    resolve(result);
+                })
+                .catch((error) => {
+                    rejectedCount++;
+                    if (rejectedCount === promises.length) {
+                        resolve(undefined);
+                    }
+                });
+        });
+    });
+}
+
+
 function splitArray<T>(arr: T[], pieces: number): T[][] {
     let result: T[][] = [];
     let chunkSize = Math.ceil(arr.length / pieces);
@@ -215,7 +235,19 @@ class PipeLane {
                     }
             })
             if (!selectedTask) {
-                throw Error(`No task defined in taskVariantConfig of type ${type} or all tasks have load already exceeding threshold of ${task.cutoffLoadThreshold}`)
+                if (this.taskVariantConfig[type]?.length == 0) {
+                    throw Error(`No task defined in taskVariantConfig of type ${type}`)
+                }
+                let allWaitForUnloads = this.taskVariantConfig[type].map(task => {
+                    return task.waitForUnload()
+                })
+                this.onLog(`All tasks of type ${type} have load already exceeding threshold of ${task.cutoffLoadThreshold}. Waiting for any of ${allWaitForUnloads.length} tasks to become unloaded`)
+                selectedTask = await waitForFirstPromise(allWaitForUnloads)
+                if (!selectedTask) {
+                    throw Error(`Unrecoverable error: All tasks of type ${type} have load already exceeding threshold of ${task.cutoffLoadThreshold} and are not gonna be avaialable anytime soon !`)
+                } else {
+                    this.onLog(`${selectedTask.getTaskVariantName()} just got unloaded. Continuing...`)
+                }
             }
             let clone = lodash.cloneDeep(selectedTask);
             return clone

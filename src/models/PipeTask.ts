@@ -119,6 +119,14 @@ abstract class PipeTask<I extends InputWithPreviousInputs, O extends OutputWithS
     public async getLoad(): Promise<number> {
         return 0;
     }
+
+    /**
+     * Will be called to wait for task to be unloaded, applications can block this * function till the task is avaialble to pick up work and the return an avaialble task instance
+     * @returns `this` if task is ready to pick up work or an instance of * available task, throw an error if this task cant be avaialble now
+     */
+    public async waitForUnload(): Promise<PipeTask<I, O>> {
+        throw new Error('Unimplemented');
+    }
 }
 
 export { OnLog, InputWithPreviousInputs, OutputWithStatus };

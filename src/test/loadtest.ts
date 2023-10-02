@@ -4,6 +4,7 @@ import SimplePipeTask from '../impl/SimplePipeTask';
 import PipeLane from '../models/PipeLane';
 import { appendFileSync, existsSync, writeFileSync } from 'fs';
 import path = require('path');
+import PipeTask from '../models/PipeTask';
 
 PipeLane.LOGGING_LEVEL = 0
 describe('PipeLane Load Test', () => {
@@ -115,5 +116,51 @@ describe('PipeLane Load Test', () => {
         console.log("DONE")
         expect(data[0].status).to.equal(true);
 
+    });
+
+    it('should wait for task to be unloaded', async () => {
+
+        class LoadedTask extends SimplePipeTask {
+            static TASK_TYPE_NAME = 'loaded'
+            public async getLoad(): Promise<number> {
+                return 100;
+            }
+
+            async execute(pipeWorkInstance: PipeLane, inputs: { last: any[]; }): Promise<any> {
+                return [{
+                    msg: 'ok'
+                }]
+            }
+
+            public async waitForUnload(): Promise<PipeTask<any, any>> {
+                await new Promise(resolve => setTimeout(resolve, 5000));
+                if (this.getTaskVariantName().indexOf("will-resolve") > -1) {
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                    return this
+                } else {
+                    throw new Error('Will not be avaialble')
+                }
+            }
+        }
+
+        const pipeWork = new PipeLane({
+            ['loaded']: [
+                new LoadedTask('will-not-resolve-0'),
+                new LoadedTask('will-not-resolve-1'),
+                new LoadedTask('will-not-resolve-2'),
+                new LoadedTask('will-not-resolve-3'),
+                new LoadedTask('will-resolve'),
+                new LoadedTask('will-not-resolve-4'),
+            ]
+        });
+
+        let data = await pipeWork
+            .pipe({
+                type: LoadedTask.TASK_TYPE_NAME,
+                uniqueStepName: 'loaded'
+            }).start()
+        expect(data[0].msg).to.equal('ok')
+
+        console.log("DONE")
     });
 });
