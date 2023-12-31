@@ -19,7 +19,7 @@ jobs:
         id: bump
         with:
             default_branch: main       # optional = default = master
-            github_token: ${{ secrets.GITHUB_TOKEN }} # required
+            github_token: ${{ secrets.GIT_TOKEN }} # required
       - run: |
           echo "Previous version: ${{ steps.bump.outputs.previous_version }}"
           echo "New Version: ${{ steps.bump.outputs.new_version }}"
