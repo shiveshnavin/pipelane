@@ -15,11 +15,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v1
-      - uses: copapow/version-bump-package@v1
+      - uses: phips28/gh-action-bump-version@master
         id: bump
         with:
-            default_branch: main       # optional = default = master
-            github_token: ${{ secrets.GIT_TOKEN }} # required
+            target-branch: main       # optional = default = master
+            GITHUB_TOKEN: ${{ secrets.GIT_TOKEN }} # required
       - run: |
           echo "Previous version: ${{ steps.bump.outputs.previous_version }}"
           echo "New Version: ${{ steps.bump.outputs.new_version }}"
