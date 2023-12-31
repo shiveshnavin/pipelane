@@ -20,9 +20,6 @@ jobs:
         with:
             target-branch: main       # optional = default = master
             GITHUB_TOKEN: ${{ secrets.GIT_TOKEN }} # required
-      - run: |
-          echo "Previous version: ${{ steps.bump.outputs.previous_version }}"
-          echo "New Version: ${{ steps.bump.outputs.new_version }}"
       - uses: actions/setup-node@v1
         with:
           node-version: 14
