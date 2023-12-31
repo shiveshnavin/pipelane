@@ -15,6 +15,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v1
+      - uses: copapow/version-bump-package@v1
+        id: bump
+        with:
+            default_branch: main       # optional = default = master
+            github_token: ${{ secrets.GITHUB_TOKEN }} # required
+      - run: |
+          echo "Previous version: ${{ steps.bump.outputs.previous_version }}"
+          echo "New Version: ${{ steps.bump.outputs.new_version }}"
       - uses: actions/setup-node@v1
         with:
           node-version: 14
