@@ -1,6 +1,9 @@
-import PipeTask, { InputWithPreviousInputs, OutputWithStatus } from "./models/PipeTask";
-import PipeLane, { TaskVariantConfig, VariablePipeTask } from "./models/PipeLane";
+import PipeLane from "./models/PipeLane";
 
+export * from './models/PipeTask'
+export * from './models/PipeLane'
+export * from './impl/CheckpointPipeTask'
+export * from './impl/DelayPipeTask'
+export * from './impl/SimplePipeTask'
 
-export { PipeTask, TaskVariantConfig, VariablePipeTask, InputWithPreviousInputs, OutputWithStatus }
 export default PipeLane

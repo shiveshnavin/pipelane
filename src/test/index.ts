@@ -11,6 +11,9 @@ describe('PipeLane Test', () => {
             [SimplePipeTask.TASK_TYPE_NAME]: [new SimplePipeTask('simplevar1'), new SimplePipeTask('simplevar2'), new SimplePipeTask('simplevar3')]
         });
         let data = await pipeWork
+            // .setListener((pl, ev, task, payload) => {
+            //     debugger
+            // })
             .pipe({
                 type: SimplePipeTask.TASK_TYPE_NAME,
                 uniqueStepName: 'Step1'
