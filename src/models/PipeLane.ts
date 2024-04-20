@@ -303,12 +303,6 @@ export class PipeLane {
         return Object.assign(new PipeLane(this.taskVariantConfig), d);
     }
 
-    private nextTaskConfig() {
-        let nextConfig = this.tasks[this.currentTaskIdx++]
-        this.getListener()(this, 'NEW_TASK', nextConfig, undefined)
-        return nextConfig
-    }
-
     private async execute(): Promise<any> {
         this.isRunning = true;
         if (this.currentTaskIdx >= this.tasks.length) {
@@ -323,7 +317,9 @@ export class PipeLane {
             task: PipeTask<InputWithPreviousInputs, OutputWithStatus>,
             inputs: InputWithPreviousInputs
         }[] = []
-        let curTaskConfig = this.nextTaskConfig()
+
+        let curTaskConfig = this.tasks[this.currentTaskIdx++]
+        this.getListener()(this, 'NEW_TASK', curTaskConfig, undefined)
         try {
 
             if (lastTaskOutputs && curTaskConfig.itemsPerShard > 0) {
@@ -383,23 +379,24 @@ export class PipeLane {
             this.onLog('Executing step', curTaskConfig.uniqueStepName || curTaskConfig.variantType || curTaskConfig.type)
         }
         while (curTaskConfig.isParallel) {
+            tasksToExecute.push({
+                taskConfig: curTaskConfig,
+                task: await curTaskConfig.getTaskVariant(curTaskConfig.type, curTaskConfig.variantType),
+                inputs: {
+                    last: lastTaskOutputs,
+                    additionalInputs: curTaskConfig.additionalInputs
+                }
+            });
+            if (PipeLane.LOGGING_LEVEL > 3) {
+                this.onLog('Executing step', curTaskConfig.uniqueStepName)
+            }
+            this.currentTaskIdx++
             if (this.currentTaskIdx >= this.tasks.length) {
                 break
             }
-            curTaskConfig = this.nextTaskConfig()
-            if (curTaskConfig.isParallel) {
-                tasksToExecute.push({
-                    taskConfig: curTaskConfig,
-                    task: await curTaskConfig.getTaskVariant(curTaskConfig.type, curTaskConfig.variantType),
-                    inputs: {
-                        last: lastTaskOutputs,
-                        additionalInputs: curTaskConfig.additionalInputs
-                    }
-                });
-                if (PipeLane.LOGGING_LEVEL > 3) {
-                    this.onLog('Executing step', curTaskConfig.uniqueStepName)
-                }
-            }
+            curTaskConfig = this.tasks[this.currentTaskIdx]
+            if (curTaskConfig.isParallel)
+                this.getListener()(this, 'NEW_TASK', curTaskConfig, undefined)
         }
 
         let pw = this;
