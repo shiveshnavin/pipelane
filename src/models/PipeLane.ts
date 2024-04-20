@@ -379,24 +379,26 @@ export class PipeLane {
             this.onLog('Executing step', curTaskConfig.uniqueStepName || curTaskConfig.variantType || curTaskConfig.type)
         }
         while (curTaskConfig.isParallel) {
-            tasksToExecute.push({
-                taskConfig: curTaskConfig,
-                task: await curTaskConfig.getTaskVariant(curTaskConfig.type, curTaskConfig.variantType),
-                inputs: {
-                    last: lastTaskOutputs,
-                    additionalInputs: curTaskConfig.additionalInputs
-                }
-            });
-            if (PipeLane.LOGGING_LEVEL > 3) {
-                this.onLog('Executing step', curTaskConfig.uniqueStepName)
-            }
-            this.currentTaskIdx++
             if (this.currentTaskIdx >= this.tasks.length) {
                 break
             }
             curTaskConfig = this.tasks[this.currentTaskIdx]
-            if (curTaskConfig.isParallel)
+            if (curTaskConfig.isParallel) {
                 this.getListener()(this, 'NEW_TASK', curTaskConfig, undefined)
+                tasksToExecute.push({
+                    taskConfig: curTaskConfig,
+                    task: await curTaskConfig.getTaskVariant(curTaskConfig.type, curTaskConfig.variantType),
+                    inputs: {
+                        last: lastTaskOutputs,
+                        additionalInputs: curTaskConfig.additionalInputs
+                    }
+                });
+                if (PipeLane.LOGGING_LEVEL > 3) {
+                    this.onLog('Executing step', curTaskConfig.uniqueStepName)
+                }
+                this.currentTaskIdx++
+            }
+
         }
 
         let pw = this;
@@ -411,11 +413,15 @@ export class PipeLane {
 
             let promise = taskExecution.task._execute(pw, taskExecution.inputs).then((result: OutputWithStatus[]) => {
                 this.lastTaskOutput.push(...result)
+                return result
             }).catch(e => {
                 this.onLog("Error in ", taskExecution.task.getTaskTypeName(), e.message)
                 this.lastTaskOutput.push({
                     status: false
                 })
+                return [{
+                    status: false
+                }]
             })
             let key = taskExecution.taskConfig.uniqueStepName || taskExecution.taskConfig.variantType
             let existingTaskTypePromisesMap = taskTypePromisesSplit[key]

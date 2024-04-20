@@ -10,10 +10,16 @@ describe('PipeLane Test', () => {
         const pipeWork = new PipeLane({
             [SimplePipeTask.TASK_TYPE_NAME]: [new SimplePipeTask('simplevar1'), new SimplePipeTask('simplevar2'), new SimplePipeTask('simplevar3')]
         });
+        let notRecievedEvents = {
+            'START': 1,
+            'NEW_TASK': 4,
+            'TASK_FINISHED': 4,
+            'COMPLETE': 1
+        }
         let data = await pipeWork
-            // .setListener((pl, ev, task, payload) => {
-            //     debugger
-            // })
+            .setListener((pl, ev, task, payload) => {
+                notRecievedEvents[ev]--
+            })
             .pipe({
                 type: SimplePipeTask.TASK_TYPE_NAME,
                 uniqueStepName: 'Step1'
@@ -31,6 +37,10 @@ describe('PipeLane Test', () => {
                 uniqueStepName: 'Step4'
             }).start()
 
+        Object.keys(notRecievedEvents)
+            .forEach(missingEv => {
+                expect(notRecievedEvents[missingEv]).to.equal(0)
+            })
         expect(data[0].count).to.equal(4)
         expect(data[0].status).to.equal(true);
     })
@@ -41,11 +51,18 @@ describe('PipeLane Test', () => {
         const pipeWork = new PipeLane({
             [SimplePipeTask.TASK_TYPE_NAME]: [new SimplePipeTask('simplevar1'), new SimplePipeTask('simplevar2'), new SimplePipeTask('simplevar3')]
         });
-
+        let notRecievedEvents = {
+            'START': 1,
+            'NEW_TASK': 9,
+            'TASK_FINISHED': 9,
+            'COMPLETE': 1
+        }
         let data = await pipeWork
+            .setListener((pl, ev, task, payload) => {
+                notRecievedEvents[ev]--
+            })
             // .enableCheckpoints('test')
             //     .clearCheckpoint()
-
             .pipe({
                 type: SimplePipeTask.TASK_TYPE_NAME,
                 uniqueStepName: 'Step1'
@@ -82,6 +99,12 @@ describe('PipeLane Test', () => {
             }).start()
 
         console.log("DONE")
+
+        Object.keys(notRecievedEvents)
+            .forEach(missingEv => {
+                expect(missingEv + '=' + notRecievedEvents[missingEv]).to.equal(missingEv + '=' + 0)
+            })
+
         expect(data[0].count).to.equal(7)
         expect(data[0].status).to.equal(true);
     });
