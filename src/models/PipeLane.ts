@@ -45,7 +45,8 @@ async function forEachAsync(arr: any, cb: Function) {
 
     }
 }
-interface VariablePipeTask {
+
+export interface VariablePipeTask {
     type: string;
     uniqueStepName?: string;
     variantType?: string;
@@ -59,25 +60,38 @@ interface VariablePipeTask {
 }
 
 
-interface TaskVariantConfig {
+export type PipelaneEvent = 'START' | 'COMPLETE' | 'NEW_TASK' | 'TASK_FINISHED' | 'KILLED'
+
+export interface TaskVariantConfig {
     [key: string]: PipeTask<InputWithPreviousInputs, OutputWithStatus>[]
 }
 
-class PipeLane {
+
+export type PipeLaneListener = (
+    pipelaneInstance: PipeLane,
+    event: PipelaneEvent,
+    task: VariablePipeTask | undefined,
+    payload: any | undefined) => void
+
+
+export class PipeLane {
 
     public static LOGGING_LEVEL = 5;
 
-    private name: string;
-    private workspaceFolder: string;
+    public name: string;
+    public workspaceFolder: string;
     private executedTasks: PipeTask<InputWithPreviousInputs, OutputWithStatus>[] = [];
-    private currentTaskIdx: number = 0;
+    public currentTaskIdx: number = 0;
     private tasks: VariablePipeTask[] = [];
-    private inputs: any;
+    public inputs: any;
     private outputs: any;
-    private isRunning: boolean;
+    public isRunning: boolean;
+    private schedule: String
+    private active: Boolean
     private isEnableCheckpoints: boolean;
     private checkpointFolderPath: string;
     private onLogSink: Function;
+    private listener: PipeLaneListener;
 
     private currentExecutionPromises: Promise<any>[] = [];
     private currentExecutionTasks: {
@@ -162,6 +176,17 @@ class PipeLane {
         } catch (e) {
             console.log("Tolerable Error saving checkpoint", e)
         }
+    }
+
+    private getListener(): PipeLaneListener {
+        if (!this.listener) {
+            return (a, b, c, d) => { }
+        }
+        return this.listener;
+    }
+    public setListener(listener: PipeLaneListener): PipeLane {
+        this.listener = listener;
+        return this
     }
 
     public async _removeCheckpoint() {
@@ -283,15 +308,18 @@ class PipeLane {
         if (this.currentTaskIdx >= this.tasks.length) {
             this.onLog("All tasks completed")
             this.isRunning = false;
+            this.getListener()(this, 'COMPLETE', undefined, this.outputs)
             return
         }
         let lastTaskOutputs: OutputWithStatus[] = this.lastTaskOutput;
         let tasksToExecute: {
+            taskConfig: VariablePipeTask,
             task: PipeTask<InputWithPreviousInputs, OutputWithStatus>,
             inputs: InputWithPreviousInputs
         }[] = []
-        let curTaskConfig = this.tasks[this.currentTaskIdx++]
 
+        let curTaskConfig = this.tasks[this.currentTaskIdx++]
+        this.getListener()(this, 'NEW_TASK', curTaskConfig, undefined)
         try {
 
             if (lastTaskOutputs && curTaskConfig.itemsPerShard > 0) {
@@ -299,6 +327,7 @@ class PipeLane {
                 let inputShards = splitArray(lastTaskOutputs, curTaskConfig.numberOfShards)
                 await forEachAsync(inputShards, async (shardInput) => {
                     tasksToExecute.push({
+                        taskConfig: curTaskConfig,
                         task: await curTaskConfig.getTaskVariant(curTaskConfig.type, curTaskConfig.variantType),
                         inputs: {
                             last: shardInput,
@@ -311,6 +340,7 @@ class PipeLane {
                 let inputShards = splitArray(lastTaskOutputs, curTaskConfig.numberOfShards)
                 await forEachAsync(inputShards, async (shardInput) => {
                     tasksToExecute.push({
+                        taskConfig: curTaskConfig,
                         task: await curTaskConfig.getTaskVariant(curTaskConfig.type, curTaskConfig.variantType),
                         inputs: {
                             last: shardInput,
@@ -321,6 +351,7 @@ class PipeLane {
             }
             else {
                 tasksToExecute.push({
+                    taskConfig: curTaskConfig,
                     task: (await curTaskConfig.getTaskVariant(curTaskConfig.type, curTaskConfig.variantType)),
                     inputs: {
                         last: lastTaskOutputs,
@@ -347,25 +378,25 @@ class PipeLane {
         if (PipeLane.LOGGING_LEVEL > 3) {
             this.onLog('Executing step', curTaskConfig.uniqueStepName || curTaskConfig.variantType || curTaskConfig.type)
         }
-
         while (curTaskConfig.isParallel) {
+            tasksToExecute.push({
+                taskConfig: curTaskConfig,
+                task: await curTaskConfig.getTaskVariant(curTaskConfig.type, curTaskConfig.variantType),
+                inputs: {
+                    last: lastTaskOutputs,
+                    additionalInputs: curTaskConfig.additionalInputs
+                }
+            });
+            if (PipeLane.LOGGING_LEVEL > 3) {
+                this.onLog('Executing step', curTaskConfig.uniqueStepName)
+            }
+            this.currentTaskIdx++
             if (this.currentTaskIdx >= this.tasks.length) {
                 break
             }
             curTaskConfig = this.tasks[this.currentTaskIdx]
-            if (curTaskConfig.isParallel) {
-                tasksToExecute.push({
-                    task: await curTaskConfig.getTaskVariant(curTaskConfig.type, curTaskConfig.variantType),
-                    inputs: {
-                        last: lastTaskOutputs,
-                        additionalInputs: curTaskConfig.additionalInputs
-                    }
-                });
-                if (PipeLane.LOGGING_LEVEL > 3) {
-                    this.onLog('Executing step', curTaskConfig.uniqueStepName)
-                }
-                this.currentTaskIdx++;
-            }
+            if (curTaskConfig.isParallel)
+                this.getListener()(this, 'NEW_TASK', curTaskConfig, undefined)
         }
 
         let pw = this;
@@ -374,8 +405,11 @@ class PipeLane {
         this.currentExecutionPromises = []
 
         this.currentExecutionTasks.push(...tasksToExecute);
+        let taskTypePromisesSplit: any = {}
+
         this.currentExecutionPromises.push(...tasksToExecute.map((taskExecution) => {
-            return taskExecution.task._execute(pw, taskExecution.inputs).then((result: OutputWithStatus[]) => {
+
+            let promise = taskExecution.task._execute(pw, taskExecution.inputs).then((result: OutputWithStatus[]) => {
                 this.lastTaskOutput.push(...result)
             }).catch(e => {
                 this.onLog("Error in ", taskExecution.task.getTaskTypeName(), e.message)
@@ -383,7 +417,26 @@ class PipeLane {
                     status: false
                 })
             })
+            let key = taskExecution.taskConfig.uniqueStepName || taskExecution.taskConfig.variantType
+            let existingTaskTypePromisesMap = taskTypePromisesSplit[key]
+            if (!existingTaskTypePromisesMap) {
+                existingTaskTypePromisesMap = {
+                    config: taskExecution.taskConfig,
+                    promises: []
+                }
+                taskTypePromisesSplit[key] = existingTaskTypePromisesMap
+            }
+            existingTaskTypePromisesMap.promises.push(promise)
+            return promise
         }))
+
+        Object.keys(taskTypePromisesSplit).forEach(key => {
+            Promise.all(taskTypePromisesSplit[key].promises).then(function (results: any[]) {
+                if (results instanceof Array && results[0] instanceof Array)
+                    results = results.flat()
+                pw.getListener()(pw, 'TASK_FINISHED', taskTypePromisesSplit[key].config, results)
+            })
+        })
 
         return new Promise((resolve, reject) => {
             Promise.all(this.currentExecutionPromises)
@@ -407,6 +460,19 @@ class PipeLane {
     /**
      * Pause current execution 
      */
+    public async reset() {
+        this.currentTaskIdx = 0
+        this.outputs = undefined
+        this.isRunning = false
+        await this.stop()
+        this.currentExecutionTasks = []
+    }
+
+
+
+    /**
+     * Pause current execution 
+     */
     public async stop() {
         this.isRunning = false;
         if (this.isEnableCheckpoints)
@@ -416,6 +482,7 @@ class PipeLane {
         })
 
         await Promise.all(this.currentExecutionPromises)
+        this.getListener()(this, 'KILLED', undefined, this.outputs)
     }
 
 
@@ -520,22 +587,11 @@ class PipeLane {
         }
         this.isRunning = true;
         this.onLog("Started executing pipework", this.name || '')
-
+        this.getListener()(this, 'START', undefined, undefined)
         await this.execute();
         return this.lastTaskOutput;
     }
 
-
-
-
-
-
-
-
-
-
-
 }
 
 export default PipeLane;
-export { VariablePipeTask, TaskVariantConfig };
