@@ -10,7 +10,8 @@
   "scripts": {
     "build": "tsc",
     "test": "mocha --timeout 100000 -r ts-node/register 'src/test/**/*.ts'",
-    "docs": " jsdoc -c jsdoc.json -r"
+    "docs": " jsdoc -c jsdoc.json -r",
+    "release": "npm run build && git add src && git add package.json && git commit -m Update-files | npm version patch && npm publish && git add package.json && git commit -m Update-version | git push"
   },
   "keywords": [
     "pipe",
