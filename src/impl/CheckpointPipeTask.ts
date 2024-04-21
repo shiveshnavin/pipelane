@@ -1,9 +1,9 @@
-import PipeTask from "../models/PipeTask";
+import { PipeTask } from "../models/PipeTask";
 import type { InputWithPreviousInputs, OutputWithStatus } from "../models/PipeTask";
-import type PipeLane from "../models/PipeLane";
+import { type PipeLane } from "../models/PipeLane";
 
 
-class CheckpointPipeTask extends PipeTask<InputWithPreviousInputs, OutputWithStatus>{
+class CheckpointPipeTask extends PipeTask<InputWithPreviousInputs, OutputWithStatus> {
 
     public static TASK_TYPE_NAME = "CheckpointPipeTask";
 

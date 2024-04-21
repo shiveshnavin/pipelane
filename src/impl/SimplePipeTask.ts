@@ -1,8 +1,8 @@
-import PipeTask, { InputWithPreviousInputs, OutputWithStatus } from "../models/PipeTask";
-import PipeLane from "../models/PipeLane";
+import { PipeTask, InputWithPreviousInputs, OutputWithStatus } from "../models/PipeTask";
+import { PipeLane } from "../models/PipeLane";
 
 
-class SimplePipeTask extends PipeTask<InputWithPreviousInputs, { count: number } & OutputWithStatus>{
+class SimplePipeTask extends PipeTask<InputWithPreviousInputs, { count: number } & OutputWithStatus> {
 
     public static TASK_TYPE_NAME = "SimplePipeTask";
     private currentLoad: number;

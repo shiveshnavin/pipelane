@@ -1,10 +1,10 @@
 import { expect } from 'chai';
 import { describe, it } from 'mocha';
 import SimplePipeTask from '../impl/SimplePipeTask';
-import PipeLane from '../models/PipeLane';
+import { PipeLane } from '../models/PipeLane';
 import { appendFileSync, existsSync, writeFileSync } from 'fs';
 import path = require('path');
-import PipeTask from '../models/PipeTask';
+import { PipeTask } from '../models/PipeTask';
 
 PipeLane.LOGGING_LEVEL = 0
 describe('PipeLane Load Test', () => {

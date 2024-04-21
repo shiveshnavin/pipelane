@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import { describe, it } from 'mocha';
 import SimplePipeTask from '../impl/SimplePipeTask';
-import PipeLane from '../models/PipeLane';
+import { PipeLane } from '../models/PipeLane';
 
 PipeLane.LOGGING_LEVEL = 0
 describe('PipeLane Test', () => {

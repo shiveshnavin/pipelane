@@ -1,4 +1,4 @@
-import PipeLane from "./models/PipeLane";
+import { PipeLane } from "./models/PipeLane";
 
 export * from './models/PipeTask'
 export * from './models/PipeLane'

@@ -1,4 +1,4 @@
-import PipeTask, { InputWithPreviousInputs, OnLog, OutputWithStatus } from "./PipeTask";
+import { PipeTask, InputWithPreviousInputs, OnLog, OutputWithStatus } from "./PipeTask";
 import * as fs from 'fs';
 import * as path from 'path';
 import moment = require("moment");
@@ -599,5 +599,3 @@ export class PipeLane {
     }
 
 }
-
-export default PipeLane;

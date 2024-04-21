@@ -1,5 +1,5 @@
 import moment = require("moment");
-import type PipeLane from "./PipeLane";
+import { type PipeLane } from "./PipeLane";
 
 interface OutputWithStatus {
     status?: boolean
@@ -129,5 +129,4 @@ abstract class PipeTask<I extends InputWithPreviousInputs, O extends OutputWithS
     }
 }
 
-export { OnLog, InputWithPreviousInputs, OutputWithStatus };
-export default PipeTask;
+export { PipeTask, OnLog, InputWithPreviousInputs, OutputWithStatus };

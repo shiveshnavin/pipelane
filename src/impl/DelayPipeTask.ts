@@ -1,8 +1,8 @@
-import PipeTask, { InputWithPreviousInputs, OutputWithStatus } from "../models/PipeTask";
-import type PipeLane from "../models/PipeLane";
+import { PipeTask, InputWithPreviousInputs, OutputWithStatus } from "../models/PipeTask";
+import { type PipeLane } from "../models/PipeLane";
 
 
-class DelayPipeTask extends PipeTask<InputWithPreviousInputs, OutputWithStatus>{
+class DelayPipeTask extends PipeTask<InputWithPreviousInputs, OutputWithStatus> {
 
     public static TASK_TYPE_NAME = "DelayPipeTask";
 
