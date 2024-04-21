@@ -308,6 +308,7 @@ export class PipeLane {
         if (this.currentTaskIdx >= this.tasks.length) {
             this.onLog("All tasks completed")
             this.isRunning = false;
+            this.outputs = this.lastTaskOutput
             this.getListener()(this, 'COMPLETE', undefined, this.outputs)
             return
         }
