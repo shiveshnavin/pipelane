@@ -426,7 +426,6 @@ export class PipeLane {
 
         this.currentExecutionPromises.push(...tasksToExecute.map((taskExecution) => {
 
-            this.executedTasks?.push(taskExecution.task)
             let promise = taskExecution.task._execute(pw, taskExecution.inputs).then((result: OutputWithStatus[]) => {
                 this.lastTaskOutput.push(...result)
                 return result
@@ -438,6 +437,8 @@ export class PipeLane {
                 return [{
                     status: false
                 }]
+            }).finally(() => {
+                this.executedTasks?.push(taskExecution.task)
             })
             let key = taskExecution.taskConfig.uniqueStepName || taskExecution.taskConfig.variantType
             let existingTaskTypePromisesMap = taskTypePromisesSplit[key]
