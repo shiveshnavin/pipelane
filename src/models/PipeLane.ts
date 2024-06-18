@@ -426,6 +426,7 @@ export class PipeLane {
 
         this.currentExecutionPromises.push(...tasksToExecute.map((taskExecution) => {
 
+            this.executedTasks?.push(taskExecution.task)
             let promise = taskExecution.task._execute(pw, taskExecution.inputs).then((result: OutputWithStatus[]) => {
                 this.lastTaskOutput.push(...result)
                 return result
