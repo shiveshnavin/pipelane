@@ -59,7 +59,7 @@ describe('PipeLane Test', () => {
         }
         let onBeforeExecCount = 0
         let data = await pipeWork
-            .setOnBeforeExecuteTask(async (pl, input) => {
+            .setOnBeforeExecuteTask(async (pl, task, input) => {
                 onBeforeExecCount++
                 return input
             })

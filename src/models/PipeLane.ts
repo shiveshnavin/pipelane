@@ -66,6 +66,10 @@ export interface TaskVariantConfig {
     [key: string]: PipeTask<InputWithPreviousInputs, OutputWithStatus>[]
 }
 
+export type OnBeforeExecute = (
+    pipeWorkInstance: PipeLane,
+    task: PipeTask<any, any>,
+    inputs: InputWithPreviousInputs) => Promise<InputWithPreviousInputs>
 
 export type PipeLaneListener = (
     pipelaneInstance: PipeLane,
@@ -92,7 +96,7 @@ export class PipeLane {
     private checkpointFolderPath: string;
     private onLogSink: Function;
     private listener: PipeLaneListener;
-    private onBeforeExecute: (pipeWorkInstance: PipeLane, inputs: InputWithPreviousInputs) => Promise<InputWithPreviousInputs>
+    private onBeforeExecute: OnBeforeExecute
 
     private currentExecutionPromises: Promise<any>[] = [];
     private currentExecutionTasks: {
@@ -180,10 +184,10 @@ export class PipeLane {
     }
 
 
-    public getOnBeforeExecuteTask(): (pipeWorkInstance: PipeLane, inputs: InputWithPreviousInputs) => Promise<InputWithPreviousInputs> {
+    public getOnBeforeExecuteTask(): OnBeforeExecute {
         return this.onBeforeExecute;
     }
-    public setOnBeforeExecuteTask(onBeforeExecute: (pipeWorkInstance: PipeLane, inputs: InputWithPreviousInputs) => Promise<InputWithPreviousInputs>): PipeLane {
+    public setOnBeforeExecuteTask(onBeforeExecute: OnBeforeExecute): PipeLane {
         this.onBeforeExecute = onBeforeExecute;
         return this
     }
