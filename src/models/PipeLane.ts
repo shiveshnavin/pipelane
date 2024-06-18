@@ -92,6 +92,7 @@ export class PipeLane {
     private checkpointFolderPath: string;
     private onLogSink: Function;
     private listener: PipeLaneListener;
+    private onBeforeExecute: (pipeWorkInstance: PipeLane, inputs: InputWithPreviousInputs) => Promise<InputWithPreviousInputs>
 
     private currentExecutionPromises: Promise<any>[] = [];
     private currentExecutionTasks: {
@@ -176,6 +177,15 @@ export class PipeLane {
         } catch (e) {
             console.log("Tolerable Error saving checkpoint", e)
         }
+    }
+
+
+    public getOnBeforeExecuteTask(): (pipeWorkInstance: PipeLane, inputs: InputWithPreviousInputs) => Promise<InputWithPreviousInputs> {
+        return this.onBeforeExecute;
+    }
+    public setOnBeforeExecuteTask(onBeforeExecute: (pipeWorkInstance: PipeLane, inputs: InputWithPreviousInputs) => Promise<InputWithPreviousInputs>): PipeLane {
+        this.onBeforeExecute = onBeforeExecute;
+        return this
     }
 
     private getListener(): PipeLaneListener {

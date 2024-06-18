@@ -65,6 +65,10 @@ abstract class PipeTask<I extends InputWithPreviousInputs, O extends OutputWithS
         this.init();
         try {
             this.pipeWorkInstance = pipeWorkInstance;
+            if (pipeWorkInstance.getOnBeforeExecuteTask()) {
+                //@ts-ignore
+                inputs = await (pipeWorkInstance.getOnBeforeExecuteTask()(pipeWorkInstance, inputs))
+            }
             let result = await this.execute(pipeWorkInstance, inputs);
             this.outputs = result;
             this.status = result && result.length > 0;

@@ -57,7 +57,12 @@ describe('PipeLane Test', () => {
             'TASK_FINISHED': 9,
             'COMPLETE': 1
         }
+        let onBeforeExecCount = 0
         let data = await pipeWork
+            .setOnBeforeExecuteTask(async (pl, input) => {
+                onBeforeExecCount++
+                return input
+            })
             .setListener((pl, ev, task, payload) => {
                 notRecievedEvents[ev]--
             })
@@ -105,6 +110,7 @@ describe('PipeLane Test', () => {
                 expect(missingEv + '=' + notRecievedEvents[missingEv]).to.equal(missingEv + '=' + 0)
             })
 
+        expect(onBeforeExecCount).to.equal(10)
         expect(data[0].count).to.equal(7)
         expect(data[0].status).to.equal(true);
     });
