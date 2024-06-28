@@ -71,14 +71,6 @@ abstract class PipeTask<I extends InputWithPreviousInputs, O extends OutputWithS
                 //@ts-ignore
                 inputs = await (pipeWorkInstance.getOnBeforeExecuteTask()(pipeWorkInstance, this, inputs))
             }
-            if (pipeWorkInstance.getOnCheckCondition()) {
-                const continueExecution = await (pipeWorkInstance.getOnCheckCondition())(pipeWorkInstance, this, inputs)
-                if (!continueExecution) {
-                    this.onLog(`Skipping task ${this.getTaskVariantName()} as condition not met.`)
-                    return inputs.last as O[]
-                }
-            }
-
             let result = await this.execute(pipeWorkInstance, inputs);
             this.outputs = result;
             this.status = result && result.length > 0;

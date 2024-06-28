@@ -60,7 +60,7 @@ export interface VariablePipeTask {
 }
 
 
-export type PipelaneEvent = 'START' | 'COMPLETE' | 'NEW_TASK' | 'TASK_FINISHED' | 'KILLED'
+export type PipelaneEvent = 'START' | 'COMPLETE' | 'NEW_TASK' | 'TASK_FINISHED' | 'KILLED' | 'SKIPPED'
 
 export interface TaskVariantConfig {
     [key: string]: PipeTask<InputWithPreviousInputs, OutputWithStatus>[]
@@ -102,7 +102,7 @@ export class PipeLane {
     private onLogSink: Function;
     private listener: PipeLaneListener;
     private onBeforeExecute: OnBeforeExecute
-    private onCheckCondition: OnCheckCondition
+    private onCheckCondition: OnCheckCondition = () => Promise.resolve(true)
 
     private currentExecutionPromises: Promise<any>[] = [];
     private currentExecutionTasks: {
@@ -199,6 +199,10 @@ export class PipeLane {
         return this
     }
 
+    /**
+     * 
+     * @returns The function should either return true or false
+     */
     public getOnCheckCondition(): OnCheckCondition {
         return this.onCheckCondition;
     }
@@ -438,8 +442,19 @@ export class PipeLane {
 
         this.currentExecutionTasks.push(...tasksToExecute);
         let taskTypePromisesSplit: any = {}
+        let getOnCheckCondition = this.getOnCheckCondition().bind(this)
+        this.currentExecutionPromises.push(...tasksToExecute.map(async (taskExecution) => {
 
-        this.currentExecutionPromises.push(...tasksToExecute.map((taskExecution) => {
+            if (getOnCheckCondition && typeof getOnCheckCondition == "function") {
+                const doContinue = await getOnCheckCondition(this, taskExecution.task, taskExecution.inputs)
+                if (!doContinue) {
+                    pw.getListener()(pw, 'SKIPPED', taskExecution.taskConfig, taskExecution.inputs.last)
+                    this.onLog(`Skipping task ${taskExecution.taskConfig.uniqueStepName} as condition not met.`)
+                    this.lastTaskOutput.push(...taskExecution.inputs.last)
+                    this.executedTasks?.push(taskExecution.task)
+                    return Promise.resolve(taskExecution.inputs.last)
+                }
+            }
 
             let promise = taskExecution.task._execute(pw, taskExecution.inputs).then((result: OutputWithStatus[]) => {
                 this.lastTaskOutput.push(...result)
