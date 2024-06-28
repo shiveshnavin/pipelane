@@ -442,17 +442,18 @@ export class PipeLane {
 
         this.currentExecutionTasks.push(...tasksToExecute);
         let taskTypePromisesSplit: any = {}
-        let getOnCheckCondition = this.getOnCheckCondition().bind(this)
-        this.currentExecutionPromises.push(...tasksToExecute.map(async (taskExecution) => {
+        let checkCondition = this.getOnCheckCondition().bind(this)
+        for (let taskExecution of tasksToExecute) {
 
-            if (getOnCheckCondition && typeof getOnCheckCondition == "function") {
-                const doContinue = await getOnCheckCondition(this, taskExecution.task, taskExecution.inputs)
+            if (checkCondition && typeof checkCondition == "function") {
+                const doContinue = await checkCondition(this, taskExecution.task, taskExecution.inputs)
                 if (!doContinue) {
                     pw.getListener()(pw, 'SKIPPED', taskExecution.taskConfig, taskExecution.inputs.last)
                     this.onLog(`Skipping task ${taskExecution.taskConfig.uniqueStepName} as condition not met.`)
                     this.lastTaskOutput.push(...taskExecution.inputs.last)
                     this.executedTasks?.push(taskExecution.task)
-                    return Promise.resolve(taskExecution.inputs.last)
+                    this.currentExecutionPromises.push(Promise.resolve(taskExecution.inputs.last))
+                    continue
                 }
             }
 
@@ -480,8 +481,8 @@ export class PipeLane {
                 taskTypePromisesSplit[key] = existingTaskTypePromisesMap
             }
             existingTaskTypePromisesMap.promises.push(promise)
-            return promise
-        }))
+            this.currentExecutionPromises.push(promise)
+        }
 
         Object.keys(taskTypePromisesSplit).forEach(key => {
             Promise.all(taskTypePromisesSplit[key].promises).then(function (results: any[]) {
