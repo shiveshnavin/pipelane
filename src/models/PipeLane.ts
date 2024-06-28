@@ -71,6 +71,11 @@ export type OnBeforeExecute = (
     task: PipeTask<any, any>,
     inputs: InputWithPreviousInputs) => Promise<InputWithPreviousInputs>
 
+export type OnCheckCondition = (
+    pipeWorkInstance: PipeLane,
+    task: PipeTask<any, any>,
+    inputs: InputWithPreviousInputs) => Promise<Boolean>
+
 export type PipeLaneListener = (
     pipelaneInstance: PipeLane,
     event: PipelaneEvent,
@@ -80,7 +85,7 @@ export type PipeLaneListener = (
 
 export class PipeLane {
 
-    public static LOGGING_LEVEL = 5;
+    public logLevel: 0 | 1 | 2 | 3 | 4 | 5 = 5;
 
     public name: string;
     public workspaceFolder: string;
@@ -97,6 +102,7 @@ export class PipeLane {
     private onLogSink: Function;
     private listener: PipeLaneListener;
     private onBeforeExecute: OnBeforeExecute
+    private onCheckCondition: OnCheckCondition
 
     private currentExecutionPromises: Promise<any>[] = [];
     private currentExecutionTasks: {
@@ -179,7 +185,8 @@ export class PipeLane {
             fs.writeFileSync(chFile, JSON.stringify(JSON.parse(json), undefined, 2));
             this.onLog("Checkpoint saved to", chFile);
         } catch (e) {
-            console.log("Tolerable Error saving checkpoint", e)
+            if (this.logLevel > 0)
+                console.log("Tolerable Error saving checkpoint", e)
         }
     }
 
@@ -189,6 +196,14 @@ export class PipeLane {
     }
     public setOnBeforeExecuteTask(onBeforeExecute: OnBeforeExecute): PipeLane {
         this.onBeforeExecute = onBeforeExecute;
+        return this
+    }
+
+    public getOnCheckCondition(): OnCheckCondition {
+        return this.onCheckCondition;
+    }
+    public setOnCheckCondition(onCheckCondition: OnCheckCondition): PipeLane {
+        this.onCheckCondition = onCheckCondition;
         return this
     }
 
@@ -305,7 +320,7 @@ export class PipeLane {
     }
 
     public onLog = function (...args: any[]) {
-        if (PipeLane.LOGGING_LEVEL >= 2) {
+        if (this.logLevel >= 2) {
             console.log(OnLog(args))
         }
         if (this.onLogSink) {
@@ -376,7 +391,7 @@ export class PipeLane {
             }
         } catch (e) {
 
-            if (PipeLane.LOGGING_LEVEL > 2) {
+            if (this.logLevel > 2) {
                 console.log(e)
             }
             if (!this.lastTaskOutput) {
@@ -390,7 +405,7 @@ export class PipeLane {
             return
         }
 
-        if (PipeLane.LOGGING_LEVEL > 3) {
+        if (this.logLevel > 3) {
             this.onLog('Executing step', curTaskConfig.uniqueStepName || curTaskConfig.variantType || curTaskConfig.type)
         }
         while (curTaskConfig.isParallel) {
@@ -408,7 +423,7 @@ export class PipeLane {
                         additionalInputs: curTaskConfig.additionalInputs
                     }
                 });
-                if (PipeLane.LOGGING_LEVEL > 3) {
+                if (this.logLevel > 3) {
                     this.onLog('Executing step', curTaskConfig.uniqueStepName)
                 }
                 this.currentTaskIdx++
@@ -469,7 +484,8 @@ export class PipeLane {
                     resolve(this.lastTaskOutput)
                 })
                 .catch(async (e) => {
-                    console.log(e)
+                    if (this.logLevel > 0)
+                        console.log(e)
                     this.onLog("Error executing tasks", e.message)
                     if (this.isRunning)
                         await this.execute();

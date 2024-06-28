@@ -6,13 +6,13 @@ import { appendFileSync, existsSync, writeFileSync } from 'fs';
 import path = require('path');
 import { PipeTask } from '../models/PipeTask';
 
-PipeLane.LOGGING_LEVEL = 0
 describe('PipeLane Load Test', () => {
     it('should fail due to overload of specified variant', async () => {
 
         const pipeWork = new PipeLane({
             [SimplePipeTask.TASK_TYPE_NAME]: [new SimplePipeTask('simplevar1', 100), new SimplePipeTask('simplevar2'), new SimplePipeTask('simplevar3')]
         });
+        pipeWork.logLevel = 0
         let data = await pipeWork
             .pipe({
                 type: SimplePipeTask.TASK_TYPE_NAME,
@@ -29,6 +29,7 @@ describe('PipeLane Load Test', () => {
         const pipeWork = new PipeLane({
             [SimplePipeTask.TASK_TYPE_NAME]: [new SimplePipeTask('simplevar1', 18), new SimplePipeTask('simplevar2'), new SimplePipeTask('simplevar3')]
         });
+        pipeWork.logLevel = 0
         let data = await pipeWork
             .pipe({
                 type: SimplePipeTask.TASK_TYPE_NAME,
@@ -47,6 +48,7 @@ describe('PipeLane Load Test', () => {
         const pipeWork = new PipeLane({
             [SimplePipeTask.TASK_TYPE_NAME]: [new SimplePipeTask('simplevar1', 19), new SimplePipeTask('simplevar2'), new SimplePipeTask('simplevar3')]
         });
+        pipeWork.logLevel = 0
         let data = await pipeWork
             .pipe({
                 type: SimplePipeTask.TASK_TYPE_NAME,
@@ -64,6 +66,7 @@ describe('PipeLane Load Test', () => {
         const pipeWork = new PipeLane({
             [SimplePipeTask.TASK_TYPE_NAME]: [new SimplePipeTask('simplevar1', 67), new SimplePipeTask('simplevar2', 56), new SimplePipeTask('simplevar3', 67)]
         });
+        pipeWork.logLevel = 0
         let data = await pipeWork
             .pipe({
                 type: SimplePipeTask.TASK_TYPE_NAME,
@@ -79,6 +82,7 @@ describe('PipeLane Load Test', () => {
         const pipeWork = new PipeLane({
             [SimplePipeTask.TASK_TYPE_NAME]: [new SimplePipeTask('simplevar1', 67), new SimplePipeTask('simplevar2', 10), new SimplePipeTask('simplevar3', 67)]
         });
+        pipeWork.logLevel = 0
         let data = await pipeWork
             .pipe({
                 type: SimplePipeTask.TASK_TYPE_NAME,
@@ -94,6 +98,7 @@ describe('PipeLane Load Test', () => {
         const pipeWork = new PipeLane({
             [SimplePipeTask.TASK_TYPE_NAME]: [new SimplePipeTask('simplevar1', 100), new SimplePipeTask('simplevar2', 100), new SimplePipeTask('simplevar3', 100)]
         });
+        pipeWork.logLevel = 0
         let data = await pipeWork
             .pipe({
                 type: SimplePipeTask.TASK_TYPE_NAME,
@@ -108,6 +113,7 @@ describe('PipeLane Load Test', () => {
         const pipeWork = new PipeLane({
             [SimplePipeTask.TASK_TYPE_NAME]: [new SimplePipeTask('simplevar1', 100), new SimplePipeTask('simplevar2'), new SimplePipeTask('simplevar3')]
         });
+        pipeWork.logLevel = 0
         let data = await pipeWork
             .pipe({
                 type: SimplePipeTask.TASK_TYPE_NAME,

@@ -3,13 +3,48 @@ import { describe, it } from 'mocha';
 import SimplePipeTask from '../impl/SimplePipeTask';
 import { PipeLane } from '../models/PipeLane';
 
-PipeLane.LOGGING_LEVEL = 0
 describe('PipeLane Test', () => {
+
+    it('should execute conditionally', async () => {
+        const pipeWork = new PipeLane({
+            [SimplePipeTask.TASK_TYPE_NAME]: [new SimplePipeTask('simplevar1'), new SimplePipeTask('simplevar2'), new SimplePipeTask('simplevar3')]
+        });
+
+        //@ts-ignore
+        pipeWork.setOnCheckCondition((pl, task, inputs) => {
+            return !inputs.additionalInputs?.skip
+        })
+
+        pipeWork.logLevel = 0
+        let data = await pipeWork
+            .pipe({
+                type: SimplePipeTask.TASK_TYPE_NAME,
+                uniqueStepName: 'Step1'
+            })
+            .pipe({
+                type: SimplePipeTask.TASK_TYPE_NAME,
+                uniqueStepName: 'Step2',
+                additionalInputs: {
+                    skip: true
+                }
+            })
+            .pipe({
+                type: SimplePipeTask.TASK_TYPE_NAME,
+                uniqueStepName: 'Step3'
+            })
+            .pipe({
+                type: SimplePipeTask.TASK_TYPE_NAME,
+                uniqueStepName: 'Step4'
+            }).start()
+        expect(data[0].count).to.equal(3)
+        expect(data[0].status).to.equal(true);
+    })
 
     it('should should execute sequentially', async () => {
         const pipeWork = new PipeLane({
             [SimplePipeTask.TASK_TYPE_NAME]: [new SimplePipeTask('simplevar1'), new SimplePipeTask('simplevar2'), new SimplePipeTask('simplevar3')]
         });
+        pipeWork.logLevel = 0
         let notRecievedEvents = {
             'START': 1,
             'NEW_TASK': 4,

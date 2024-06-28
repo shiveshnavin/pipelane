@@ -51,7 +51,7 @@ abstract class PipeTask<I extends InputWithPreviousInputs, O extends OutputWithS
 
     public onLog = function (...args: any[]) {
         this.logs.push(OnLog(args))
-        if (PipeTask.LOGGING_LEVEL >= 2) {
+        if (this.pipeWorkInstance.logLevel >= 2) {
             console.log(OnLog(args))
         }
         if (this.pipeWorkInstance?.onLogSink) {
@@ -59,7 +59,9 @@ abstract class PipeTask<I extends InputWithPreviousInputs, O extends OutputWithS
         }
     }
 
-
+    public async checkCondition(pipeWorkInstance: PipeLane, inputs: I): Promise<Boolean> {
+        return true
+    }
 
     public async _execute(pipeWorkInstance: PipeLane, inputs: I): Promise<O[]> {
         this.init();
@@ -69,6 +71,14 @@ abstract class PipeTask<I extends InputWithPreviousInputs, O extends OutputWithS
                 //@ts-ignore
                 inputs = await (pipeWorkInstance.getOnBeforeExecuteTask()(pipeWorkInstance, this, inputs))
             }
+            if (pipeWorkInstance.getOnCheckCondition()) {
+                const continueExecution = await (pipeWorkInstance.getOnCheckCondition())(pipeWorkInstance, this, inputs)
+                if (!continueExecution) {
+                    this.onLog(`Skipping task ${this.getTaskVariantName()} as condition not met.`)
+                    return inputs.last as O[]
+                }
+            }
+
             let result = await this.execute(pipeWorkInstance, inputs);
             this.outputs = result;
             this.status = result && result.length > 0;
@@ -76,7 +86,8 @@ abstract class PipeTask<I extends InputWithPreviousInputs, O extends OutputWithS
             this.outputs = undefined;
             this.status = false;
             this.onLog("Error while executing task. ", e.message)
-            console.log(e)
+            if (pipeWorkInstance?.logLevel > 0)
+                console.log(e)
         }
         this.done();
         return this.outputs;
