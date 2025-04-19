@@ -134,6 +134,24 @@ abstract class PipeTask<I extends InputWithPreviousInputs, O extends OutputWithS
     public async waitForUnload(): Promise<PipeTask<I, O>> {
         throw new Error('Unimplemented');
     }
+
+    public describe(): PipeTaskDescription | undefined {
+        return {
+            summary: `A ${this.taskVariantName} task`,
+            inputs: {
+                last: [],
+                additionalInputs: {}
+            }
+        };
+    }
+}
+
+type PipeTaskDescription = {
+    summary: string
+    inputs: {
+        last: any[],
+        additionalInputs: any
+    }
 }
 
 export { PipeTask, OnLog, InputWithPreviousInputs, OutputWithStatus };
