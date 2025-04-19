@@ -154,4 +154,4 @@ type PipeTaskDescription = {
     }
 }
 
-export { PipeTask, OnLog, InputWithPreviousInputs, OutputWithStatus };
+export { PipeTask, PipeTaskDescription, OnLog, InputWithPreviousInputs, OutputWithStatus };
