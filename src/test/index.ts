@@ -8,7 +8,7 @@ describe('PipeLane Test', () => {
     it('should execute conditionally', async () => {
         const pipeWork = new PipeLane({
             [SimplePipeTask.TASK_TYPE_NAME]: [new SimplePipeTask('simplevar1'), new SimplePipeTask('simplevar2'), new SimplePipeTask('simplevar3')]
-        });
+        }, 'test');
 
         //@ts-ignore
         pipeWork.setOnCheckCondition((pl, task, inputs) => {
@@ -53,7 +53,7 @@ describe('PipeLane Test', () => {
     it('should should execute sequentially', async () => {
         const pipeWork = new PipeLane({
             [SimplePipeTask.TASK_TYPE_NAME]: [new SimplePipeTask('simplevar1'), new SimplePipeTask('simplevar2'), new SimplePipeTask('simplevar3')]
-        });
+        }, 'test');
         pipeWork.logLevel = 0
         let notRecievedEvents = {
             'START': 1,
@@ -95,7 +95,7 @@ describe('PipeLane Test', () => {
 
         const pipeWork = new PipeLane({
             [SimplePipeTask.TASK_TYPE_NAME]: [new SimplePipeTask('simplevar1'), new SimplePipeTask('simplevar2'), new SimplePipeTask('simplevar3')]
-        });
+        }, 'test');
         let notRecievedEvents = {
             'START': 1,
             'NEW_TASK': 9,

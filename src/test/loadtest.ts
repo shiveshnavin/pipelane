@@ -11,7 +11,7 @@ describe('PipeLane Load Test', () => {
 
         const pipeWork = new PipeLane({
             [SimplePipeTask.TASK_TYPE_NAME]: [new SimplePipeTask('simplevar1', 100), new SimplePipeTask('simplevar2'), new SimplePipeTask('simplevar3')]
-        });
+        }, 'test');
         pipeWork.logLevel = 0
         let data = await pipeWork
             .pipe({
@@ -28,7 +28,7 @@ describe('PipeLane Load Test', () => {
 
         const pipeWork = new PipeLane({
             [SimplePipeTask.TASK_TYPE_NAME]: [new SimplePipeTask('simplevar1', 18), new SimplePipeTask('simplevar2'), new SimplePipeTask('simplevar3')]
-        });
+        }, 'test');
         pipeWork.logLevel = 0
         let data = await pipeWork
             .pipe({
@@ -47,7 +47,7 @@ describe('PipeLane Load Test', () => {
 
         const pipeWork = new PipeLane({
             [SimplePipeTask.TASK_TYPE_NAME]: [new SimplePipeTask('simplevar1', 19), new SimplePipeTask('simplevar2'), new SimplePipeTask('simplevar3')]
-        });
+        }, 'test');
         pipeWork.logLevel = 0
         let data = await pipeWork
             .pipe({
@@ -65,7 +65,7 @@ describe('PipeLane Load Test', () => {
     it('should fail due to overload of all variants', async () => {
         const pipeWork = new PipeLane({
             [SimplePipeTask.TASK_TYPE_NAME]: [new SimplePipeTask('simplevar1', 67), new SimplePipeTask('simplevar2', 56), new SimplePipeTask('simplevar3', 67)]
-        });
+        }, 'test');
         pipeWork.logLevel = 0
         let data = await pipeWork
             .pipe({
@@ -81,7 +81,7 @@ describe('PipeLane Load Test', () => {
     it('should pass due to overload of all variants but one', async () => {
         const pipeWork = new PipeLane({
             [SimplePipeTask.TASK_TYPE_NAME]: [new SimplePipeTask('simplevar1', 67), new SimplePipeTask('simplevar2', 10), new SimplePipeTask('simplevar3', 67)]
-        });
+        }, 'test');
         pipeWork.logLevel = 0
         let data = await pipeWork
             .pipe({
@@ -97,7 +97,7 @@ describe('PipeLane Load Test', () => {
     it('should fail due to overload of all variants', async () => {
         const pipeWork = new PipeLane({
             [SimplePipeTask.TASK_TYPE_NAME]: [new SimplePipeTask('simplevar1', 100), new SimplePipeTask('simplevar2', 100), new SimplePipeTask('simplevar3', 100)]
-        });
+        }, 'test');
         pipeWork.logLevel = 0
         let data = await pipeWork
             .pipe({
@@ -112,7 +112,7 @@ describe('PipeLane Load Test', () => {
     it('should pass due to overload of all but one variant', async () => {
         const pipeWork = new PipeLane({
             [SimplePipeTask.TASK_TYPE_NAME]: [new SimplePipeTask('simplevar1', 100), new SimplePipeTask('simplevar2'), new SimplePipeTask('simplevar3')]
-        });
+        }, 'test');
         pipeWork.logLevel = 0
         let data = await pipeWork
             .pipe({
@@ -158,7 +158,7 @@ describe('PipeLane Load Test', () => {
                 new LoadedTask('will-resolve'),
                 new LoadedTask('will-not-resolve-4'),
             ]
-        });
+        }, 'test');
 
         let data = await pipeWork
             .pipe({

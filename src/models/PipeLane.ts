@@ -87,7 +87,9 @@ export class PipeLane {
 
     public logLevel: 0 | 1 | 2 | 3 | 4 | 5 = 5;
 
+    public pipelaneInstanceName: string;
     public name: string;
+    public instanceId: string;
     public workspaceFolder: string;
     private executedTasks: PipeTask<InputWithPreviousInputs, OutputWithStatus>[] = [];
     public currentTaskIdx: number = 0;
@@ -117,9 +119,13 @@ export class PipeLane {
      * 
      * @param {TaskVariantConfig} taskVariantConfig Specify the variant implementations for each task
      */
-    constructor(taskVariantConfig: TaskVariantConfig) {
+    constructor(taskVariantConfig: TaskVariantConfig, name: string) {
         this.setTaskVariantsConfig(taskVariantConfig);
         this.workspaceFolder = './pipelane'
+        this.name = name
+        if (!name) {
+            throw new Error('Please provide a name for pipelane, this is different than instanceId')
+        }
     }
 
     public setOnLogSink(onLogSink) {
@@ -148,15 +154,15 @@ export class PipeLane {
         return this;
     }
 
-    public enableCheckpoints(pipeName: string, checkpointFolderPath?: string): PipeLane {
-        if (!pipeName) {
+    public enableCheckpoints(instanceName: string = this.name + '-' + Date.now(), checkpointFolderPath?: string): PipeLane {
+        if (!instanceName) {
             this.onLog("Undefined checkpoint name. Checkpoints not enabled!")
             return
         }
         if (!checkpointFolderPath) {
             checkpointFolderPath = './pipelane/'
         }
-        this.name = pipeName;
+        this.instanceId = instanceName;
         this.checkpointFolderPath = checkpointFolderPath;
         this.isEnableCheckpoints = true;
 
@@ -175,7 +181,7 @@ export class PipeLane {
                 this.onLog(`Skipping saving checkpoint as checkpointFolderPath is not defined. did you call enableCheckpoints(<checkpoint-name>)`)
                 return
             }
-            let chFile = path.join(this.checkpointFolderPath, `./checkpoint_${this.name}.json`);
+            let chFile = path.join(this.checkpointFolderPath, `./checkpoint_${this.instanceId}.json`);
             let json = JSON.stringify(this, (key, value) => {
                 if (key === 'pipeWorkInstance') {
                     return undefined;
@@ -223,14 +229,14 @@ export class PipeLane {
     }
 
     public async _removeCheckpoint() {
-        let chFile = path.join(this.checkpointFolderPath, `./checkpoint_${this.name}.json`);
+        let chFile = path.join(this.checkpointFolderPath, `./checkpoint_${this.instanceId}.json`);
         if (fs.existsSync(chFile))
             fs.unlinkSync(chFile)
         this.onLog("Checkpoint removed", chFile)
     }
 
-    private _loadCheckpoint(pipeName: string) {
-        let chFile = path.join(this.checkpointFolderPath, `./checkpoint_${pipeName}.json`);
+    private _loadCheckpoint(instanceName: string) {
+        let chFile = path.join(this.checkpointFolderPath, `./checkpoint_${instanceName}.json`);
         if (!fs.existsSync(chFile)) {
             this.onLog("No checkpoint found in path.", chFile)
             return
@@ -244,7 +250,7 @@ export class PipeLane {
         this.inputs = obj.inputs;
         this.lastTaskOutput = obj.lastTaskOutput
         this.isRunning = false;
-        this.name = pipeName;
+        this.instanceId = instanceName;
         this.currentTaskIdx = obj.currentTaskIdx;
         this.currentExecutionPromises = [];
     }
@@ -332,8 +338,8 @@ export class PipeLane {
         }
     }
 
-    private deserialize(d: Object): PipeLane {
-        return Object.assign(new PipeLane(this.taskVariantConfig), d);
+    private deserialize(d: any): PipeLane {
+        return Object.assign(new PipeLane(this.taskVariantConfig, d.name || 'unknown'), d);
     }
 
     private async execute(): Promise<any> {
@@ -638,10 +644,10 @@ export class PipeLane {
         this.inputs = inputs;
         this.currentExecutionPromises = [];
         if (this.isEnableCheckpoints) {
-            this._loadCheckpoint(this.name);
+            this._loadCheckpoint(this.instanceId);
         }
         this.isRunning = true;
-        this.onLog("Started executing pipework", this.name || '')
+        this.onLog("Started executing pipework", this.instanceId || '')
         this.getListener()(this, 'START', undefined, undefined)
         await this.execute();
         return this.lastTaskOutput;
