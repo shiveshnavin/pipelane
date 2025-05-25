@@ -456,7 +456,8 @@ export class PipeLane {
                 if (!doContinue) {
                     pw.getListener()(pw, 'SKIPPED', taskExecution.taskConfig, taskExecution.inputs.last)
                     this.onLog(`Skipping task ${taskExecution.taskConfig.uniqueStepName} as condition not met.`)
-                    this.lastTaskOutput.push(...taskExecution.inputs.last)
+                    //@ts-ignore
+                    this.lastTaskOutput.push(...(taskExecution.inputs?.last || [{ status: false, message: 'Missing inputs.last. Check the previous task maybe' }]));
                     this.executedTasks?.push(taskExecution.task)
                     this.currentExecutionPromises.push(Promise.resolve(taskExecution.inputs.last))
                     continue
