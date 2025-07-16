@@ -278,6 +278,7 @@ export class PipeLane {
                 });
                 if (matchingVariant) {
                     let clone: PipeTask<InputWithPreviousInputs, OutputWithStatus> = lodash.cloneDeep(matchingVariant);
+                    clone.uniqueStepName = task.uniqueStepName || clone.getTaskVariantName() || clone.getTaskTypeName();
                     let currentLoad = await clone.getLoad()
                     if ((currentLoad) >= task.cutoffLoadThreshold) {
                         this.onLog(`Found a task defined in taskVariantConfig of type "${type}" and variantType "${variantType}" but the Current load = ${currentLoad} already exceeded threshold ${task.cutoffLoadThreshold}.`)
@@ -368,7 +369,8 @@ export class PipeLane {
                 await forEachAsync(inputShards, async (shardInput) => {
                     tasksToExecute.push({
                         taskConfig: curTaskConfig,
-                        task: await curTaskConfig.getTaskVariant(curTaskConfig.type, curTaskConfig.variantType),
+                        task: await curTaskConfig.getTaskVariant(curTaskConfig.type, curTaskConfig.variantType)
+                            .then(this.uniqueStepNameDecorator(curTaskConfig.uniqueStepName)),
                         inputs: {
                             last: shardInput,
                             additionalInputs: curTaskConfig.additionalInputs
@@ -381,7 +383,7 @@ export class PipeLane {
                 await forEachAsync(inputShards, async (shardInput) => {
                     tasksToExecute.push({
                         taskConfig: curTaskConfig,
-                        task: await curTaskConfig.getTaskVariant(curTaskConfig.type, curTaskConfig.variantType),
+                        task: await curTaskConfig.getTaskVariant(curTaskConfig.type, curTaskConfig.variantType).then(this.uniqueStepNameDecorator(curTaskConfig.uniqueStepName)),
                         inputs: {
                             last: shardInput,
                             additionalInputs: curTaskConfig.additionalInputs
@@ -392,7 +394,7 @@ export class PipeLane {
             else {
                 tasksToExecute.push({
                     taskConfig: curTaskConfig,
-                    task: (await curTaskConfig.getTaskVariant(curTaskConfig.type, curTaskConfig.variantType)),
+                    task: (await curTaskConfig.getTaskVariant(curTaskConfig.type, curTaskConfig.variantType).then(this.uniqueStepNameDecorator(curTaskConfig.uniqueStepName))),
                     inputs: {
                         last: lastTaskOutputs,
                         additionalInputs: curTaskConfig.additionalInputs
@@ -427,7 +429,7 @@ export class PipeLane {
                 this.getListener()(this, 'NEW_TASK', curTaskConfig, undefined)
                 tasksToExecute.push({
                     taskConfig: curTaskConfig,
-                    task: await curTaskConfig.getTaskVariant(curTaskConfig.type, curTaskConfig.variantType),
+                    task: await curTaskConfig.getTaskVariant(curTaskConfig.type, curTaskConfig.variantType).then(this.uniqueStepNameDecorator(curTaskConfig.uniqueStepName)),
                     inputs: {
                         last: lastTaskOutputs,
                         additionalInputs: curTaskConfig.additionalInputs
@@ -530,6 +532,15 @@ export class PipeLane {
         this.currentExecutionTasks = []
     }
 
+
+    private uniqueStepNameDecorator(uniqueStepName: string) {
+        return async (task: PipeTask<InputWithPreviousInputs, OutputWithStatus>): Promise<PipeTask<InputWithPreviousInputs, OutputWithStatus>> => {
+            if (uniqueStepName) {
+                task.uniqueStepName = uniqueStepName;
+            }
+            return task
+        }
+    }
 
 
     /**

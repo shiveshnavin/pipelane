@@ -30,9 +30,9 @@ abstract class PipeTask<I extends InputWithPreviousInputs, O extends OutputWithS
     public static TASK_TYPE_NAME: string;
     public static LOGGING_LEVEL: number = 5;
 
-
-    private taskVariantName: string;
-    private taskTypeName: string;
+    public uniqueStepName: string
+    public taskVariantName: string;
+    public taskTypeName: string;
     public isParallel = false;
     public input: I;
     public outputs: O[];
@@ -40,9 +40,9 @@ abstract class PipeTask<I extends InputWithPreviousInputs, O extends OutputWithS
     public error: string;
     public logs: string[] = [];
 
-    private startTime: Number;
-    private endTime: Number;
-    private pipeWorkInstance: PipeLane;
+    public startTime: Number;
+    public endTime: Number;
+    public pipeWorkInstance: PipeLane;
 
     constructor(taskTypeName: string, taskVariantName: string) {
         this.taskTypeName = taskTypeName;
