@@ -91,14 +91,14 @@ export class PipeLane {
     public name: string;
     public instanceId: string;
     public workspaceFolder: string;
-    private executedTasks: PipeTask<InputWithPreviousInputs, OutputWithStatus>[] = [];
+    public executedTasks: PipeTask<InputWithPreviousInputs, OutputWithStatus>[] = [];
     public currentTaskIdx: number = 0;
-    private tasks: VariablePipeTask[] = [];
+    public tasks: VariablePipeTask[] = [];
     public inputs: any;
-    private outputs: any;
+    public outputs: any;
     public isRunning: boolean;
-    private schedule: String
-    private active: Boolean
+    public schedule: String
+    public active: Boolean
     private isEnableCheckpoints: boolean;
     private checkpointFolderPath: string;
     private onLogSink: Function;
