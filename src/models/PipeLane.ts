@@ -186,6 +186,9 @@ export class PipeLane {
                 if (key === 'pipeWorkInstance') {
                     return undefined;
                 }
+                if (key === 'db') {
+                    return undefined;
+                }
                 return value;
             })
             fs.writeFileSync(chFile, JSON.stringify(JSON.parse(json), undefined, 2));
