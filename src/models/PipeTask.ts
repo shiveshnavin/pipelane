@@ -77,7 +77,7 @@ abstract class PipeTask<I extends InputWithPreviousInputs, O extends OutputWithS
             this.outputs = result;
             this.status = result && result.length > 0;
             this.statusMessage = "SUCCESS"
-            if (result.find(r => !!r.status)) {
+            if (result.find(r => r.status == false)) {
                 this.statusMessage = "PARTIAL_SUCCESS"
             }
         } catch (e) {
