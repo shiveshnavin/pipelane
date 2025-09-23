@@ -412,8 +412,9 @@ export class PipeLane {
                 this.lastTaskOutput = []
             }
             this.lastTaskOutput.push({
-                status: false
-            })
+                status: false,
+                message: e.message
+            } as any)
             this.onLog("Fatal error while retrieving task variant", e.message)
             this.stop()
             return
@@ -476,10 +477,12 @@ export class PipeLane {
             }).catch(e => {
                 this.onLog("Error in ", taskExecution.task.getTaskTypeName(), e.message)
                 this.lastTaskOutput.push({
-                    status: false
-                })
+                    status: false,
+                    message: e.message
+                } as any)
                 return [{
-                    status: false
+                    status: false,
+                    message: e.message
                 }]
             }).finally(() => {
                 this.executedTasks?.push(taskExecution.task)

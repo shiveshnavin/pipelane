@@ -77,11 +77,11 @@ abstract class PipeTask<I extends InputWithPreviousInputs, O extends OutputWithS
             this.outputs = result;
             this.status = result && result.length > 0;
             this.statusMessage = "SUCCESS"
-            if (result.find(r => r.status == false)) {
-                this.statusMessage = "PARTIAL_SUCCESS"
-            }
         } catch (e) {
-            this.outputs = undefined;
+            this.outputs = [{
+                status: false,
+                message: e.message
+            } as any];
             this.status = false;
             this.statusMessage = "FAILED"
             this.onLog("Error while executing task. ", e.message)
