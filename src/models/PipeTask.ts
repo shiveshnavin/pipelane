@@ -37,6 +37,7 @@ abstract class PipeTask<I extends InputWithPreviousInputs, O extends OutputWithS
     public input: I;
     public outputs: O[];
     public status: boolean;
+    public statusMessage: "SUCCESS" | "IN_PROGRESS" | "PAUSED" | "FAILED" | "PARTIAL_SUCCESS" | "SKIPPED";
     public error: string;
     public logs: string[] = [];
 
@@ -66,6 +67,7 @@ abstract class PipeTask<I extends InputWithPreviousInputs, O extends OutputWithS
     public async _execute(pipeWorkInstance: PipeLane, inputs: I): Promise<O[]> {
         this.init();
         try {
+            this.statusMessage = "IN_PROGRESS"
             this.pipeWorkInstance = pipeWorkInstance;
             if (pipeWorkInstance.getOnBeforeExecuteTask()) {
                 //@ts-ignore
@@ -74,15 +76,35 @@ abstract class PipeTask<I extends InputWithPreviousInputs, O extends OutputWithS
             let result = await this.execute(pipeWorkInstance, inputs);
             this.outputs = result;
             this.status = result && result.length > 0;
+            this.statusMessage = "SUCCESS"
+            if (result.find(r => !!r.status)) {
+                this.statusMessage = "PARTIAL_SUCCESS"
+            }
         } catch (e) {
             this.outputs = undefined;
             this.status = false;
+            this.statusMessage = "FAILED"
             this.onLog("Error while executing task. ", e.message)
             if (pipeWorkInstance?.logLevel > 0)
                 console.log(e)
+            if (this.isFastFail(inputs.additionalInputs?.fastFail)) {
+                this.onLog("Stopping Pipelane as task is tagged as fastFail=" + inputs.additionalInputs?.fastFail);
+                pipeWorkInstance.stop();
+            }
+            if (this.isFastFail(pipeWorkInstance?.inputs?.fastFail)) {
+                this.onLog("Stopping Pipelane as Pipelane is tagged as fastFail=" + pipeWorkInstance?.inputs?.fastFail);
+                pipeWorkInstance.stop();
+            }
         }
         this.done();
         return this.outputs;
+    }
+
+    public isFastFail(fastFail: any) {
+        return (fastFail === 1
+            || fastFail === '1'
+            || fastFail === 'true'
+            || fastFail === true)
     }
 
 
