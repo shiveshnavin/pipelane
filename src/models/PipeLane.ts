@@ -5,7 +5,7 @@ import moment = require("moment");
 import * as lodash from 'lodash';
 import DelayPipeTask from "../impl/DelayPipeTask";
 import CheckpointPipeTask from "../impl/CheckpointPipeTask";
-
+import _ from 'lodash'
 
 function waitForFirstPromise(promises): any {
     return new Promise((resolve, reject) => {
@@ -368,7 +368,7 @@ export class PipeLane {
 
             if (lastTaskOutputs && curTaskConfig.itemsPerShard > 0) {
                 curTaskConfig.numberOfShards = Math.max(1, lastTaskOutputs.length / (curTaskConfig.itemsPerShard))
-                let inputShards = splitArray(lastTaskOutputs, curTaskConfig.numberOfShards)
+                let inputShards = splitArray(_.cloneDeep(lastTaskOutputs), curTaskConfig.numberOfShards)
                 await forEachAsync(inputShards, async (shardInput) => {
                     tasksToExecute.push({
                         taskConfig: curTaskConfig,
@@ -382,7 +382,7 @@ export class PipeLane {
                 })
             }
             else if (lastTaskOutputs && curTaskConfig.numberOfShards > 0 && curTaskConfig.numberOfShards <= lastTaskOutputs.length) {
-                let inputShards = splitArray(lastTaskOutputs, curTaskConfig.numberOfShards)
+                let inputShards = splitArray(_.cloneDeep(lastTaskOutputs), curTaskConfig.numberOfShards)
                 await forEachAsync(inputShards, async (shardInput) => {
                     tasksToExecute.push({
                         taskConfig: curTaskConfig,
@@ -399,7 +399,7 @@ export class PipeLane {
                     taskConfig: curTaskConfig,
                     task: (await curTaskConfig.getTaskVariant(curTaskConfig.type, curTaskConfig.variantType).then(this.uniqueStepNameDecorator(curTaskConfig.uniqueStepName))),
                     inputs: {
-                        last: lastTaskOutputs,
+                        last: _.cloneDeep(lastTaskOutputs),
                         additionalInputs: curTaskConfig.additionalInputs
                     }
                 });
@@ -434,7 +434,7 @@ export class PipeLane {
                     taskConfig: curTaskConfig,
                     task: await curTaskConfig.getTaskVariant(curTaskConfig.type, curTaskConfig.variantType).then(this.uniqueStepNameDecorator(curTaskConfig.uniqueStepName)),
                     inputs: {
-                        last: lastTaskOutputs,
+                        last: _.cloneDeep(lastTaskOutputs),
                         additionalInputs: curTaskConfig.additionalInputs
                     }
                 });
