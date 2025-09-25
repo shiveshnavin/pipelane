@@ -334,10 +334,10 @@ export class PipeLane {
 
     public onLog = function (...args: any[]) {
         if (this.logLevel >= 2) {
-            console.log(OnLog(args))
+            console.log(OnLog(args, this))
         }
         if (this.onLogSink) {
-            this.onLogSink(OnLog(args))
+            this.onLogSink(OnLog(args, this))
         }
     }
 

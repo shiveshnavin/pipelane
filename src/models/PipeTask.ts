@@ -11,8 +11,8 @@ interface InputWithPreviousInputs {
 }
 
 
-function OnLog(args: any) {
-    let log = '[pipelane] ' + moment(new Date()).format("DD/MM/YYYY hh:mm:ss") + ' ';
+function OnLog(args: any, pipeWorkInstance: PipeLane) {
+    let log = `[${pipeWorkInstance?.name || 'pipelane'}] ` + moment(new Date()).format("DD/MM/YYYY hh:mm:ss") + ' ';
     args.forEach(str => {
         if (['number', 'string', 'boolean'].indexOf(typeof str) > -1) {
             log = log.concat(str).concat(' ')
@@ -51,12 +51,12 @@ abstract class PipeTask<I extends InputWithPreviousInputs, O extends OutputWithS
     }
 
     public onLog = function (...args: any[]) {
-        this.logs.push(OnLog(args))
+        this.logs.push(OnLog(args, this.pipeWorkInstance))
         if (this.pipeWorkInstance.logLevel >= 2) {
-            console.log(OnLog(args))
+            console.log(OnLog(args, this.pipeWorkInstance))
         }
         if (this.pipeWorkInstance?.onLogSink) {
-            this.pipeWorkInstance?.onLogSink(OnLog(args))
+            this.pipeWorkInstance?.onLogSink(OnLog(args, this.pipeWorkInstance))
         }
     }
 
