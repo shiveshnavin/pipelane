@@ -11,8 +11,8 @@ interface InputWithPreviousInputs {
 }
 
 
-function OnLog(args: any, pipeWorkInstance: PipeLane) {
-    let log = `[${pipeWorkInstance?.name || 'pipelane'}] ` + moment(new Date()).format("DD/MM/YYYY hh:mm:ss") + ' ';
+function OnLog(args: any, pipeWorkInstance: PipeLane, tag?: string) {
+    let log = `[${pipeWorkInstance?.name || 'pipelane'}]${tag ? `:[${tag}]` : ''} ` + moment(new Date()).format("DD/MM/YYYY hh:mm:ss") + ' ';
     args.forEach(str => {
         if (['number', 'string', 'boolean'].indexOf(typeof str) > -1) {
             log = log.concat(str).concat(' ')
@@ -51,12 +51,12 @@ abstract class PipeTask<I extends InputWithPreviousInputs, O extends OutputWithS
     }
 
     public onLog = function (...args: any[]) {
-        this.logs.push(OnLog(args, this.pipeWorkInstance))
+        this.logs.push(OnLog(args, this.pipeWorkInstance, this.uniqueStepName || this.taskVariantName))
         if (this.pipeWorkInstance.logLevel >= 2) {
-            console.log(OnLog(args, this.pipeWorkInstance))
+            console.log(OnLog(args, this.pipeWorkInstance, this.uniqueStepName || this.taskVariantName))
         }
         if (this.pipeWorkInstance?.onLogSink) {
-            this.pipeWorkInstance?.onLogSink(OnLog(args, this.pipeWorkInstance))
+            this.pipeWorkInstance?.onLogSink(OnLog(args, this.pipeWorkInstance, this.uniqueStepName || this.taskVariantName))
         }
     }
 
@@ -77,6 +77,18 @@ abstract class PipeTask<I extends InputWithPreviousInputs, O extends OutputWithS
             this.outputs = result;
             this.status = result && result.length > 0;
             this.statusMessage = "SUCCESS"
+
+            let allResultsFailed = result.find(r => r.status) == undefined;
+            if (allResultsFailed) {
+                if (this.isFastFail(inputs.additionalInputs?.fastFail)) {
+                    this.onLog("Complete task failure, Stopping Pipelane as task is tagged as fastFail=" + inputs.additionalInputs?.fastFail);
+                    pipeWorkInstance.stop();
+                }
+                if (this.isFastFail(pipeWorkInstance?.inputs?.fastFail)) {
+                    this.onLog("Complete task failure, Stopping Pipelane as Pipelane is tagged as fastFail=" + pipeWorkInstance?.inputs?.fastFail);
+                    pipeWorkInstance.stop();
+                }
+            }
         } catch (e) {
             this.outputs = [{
                 status: false,
