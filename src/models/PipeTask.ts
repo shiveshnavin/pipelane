@@ -81,11 +81,11 @@ abstract class PipeTask<I extends InputWithPreviousInputs, O extends OutputWithS
             let allResultsFailed = result.find(r => r.status) == undefined;
             if (allResultsFailed) {
                 if (this.isFastFail(inputs.additionalInputs?.fastFail)) {
-                    this.onLog("Complete task failure, Stopping Pipelane as task is tagged as fastFail=" + inputs.additionalInputs?.fastFail);
+                    this.onLog("Fatal task failure, Stopping Pipelane as task is tagged as fastFail=" + inputs.additionalInputs?.fastFail);
                     pipeWorkInstance.stop();
                 }
                 if (this.isFastFail(pipeWorkInstance?.inputs?.fastFail)) {
-                    this.onLog("Complete task failure, Stopping Pipelane as Pipelane is tagged as fastFail=" + pipeWorkInstance?.inputs?.fastFail);
+                    this.onLog("Fatal task failure, Stopping Pipelane as Pipelane is tagged as fastFail=" + pipeWorkInstance?.inputs?.fastFail);
                     pipeWorkInstance.stop();
                 }
             }
