@@ -52,7 +52,7 @@ abstract class PipeTask<I extends InputWithPreviousInputs, O extends OutputWithS
 
     public onLog = function (...args: any[]) {
         this.logs.push(OnLog(args, this.pipeWorkInstance, this.uniqueStepName || this.taskVariantName))
-        if (this.pipeWorkInstance.logLevel >= 2) {
+        if ((this.pipeWorkInstance?.logLevel || 5) >= 2) {
             console.log(OnLog(args, this.pipeWorkInstance, this.uniqueStepName || this.taskVariantName))
         }
         if (this.pipeWorkInstance?.onLogSink) {
