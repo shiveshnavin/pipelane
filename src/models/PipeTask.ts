@@ -50,15 +50,18 @@ abstract class PipeTask<I extends InputWithPreviousInputs, O extends OutputWithS
         this.taskVariantName = taskVariantName;
     }
 
-    public onLog = function (...args: any[]) {
-        this.logs.push(OnLog(args, this.pipeWorkInstance, this.uniqueStepName || this.taskVariantName))
-        if ((this.pipeWorkInstance?.logLevel ?? 5) >= 2) {
-            console.log(OnLog(args, this.pipeWorkInstance, this.uniqueStepName || this.taskVariantName))
+    onLog = function (...args) {
+        let logLine = OnLog(args, this.pipeWorkInstance, this.uniqueStepName || this.taskVariantName)
+        if (!logLine)
+            return;
+        this.logs.push(logLine);
+        if ((this.pipeWorkInstance?.logLevel || 5) >= 2) {
+            console.log(logLine);
         }
         if (this.pipeWorkInstance?.onLogSink) {
-            this.pipeWorkInstance?.onLogSink(OnLog(args, this.pipeWorkInstance, this.uniqueStepName || this.taskVariantName))
+            this.pipeWorkInstance?.onLogSink(logLine);
         }
-    }
+    };
 
     public async checkCondition(pipeWorkInstance: PipeLane, inputs: I): Promise<Boolean> {
         return true
